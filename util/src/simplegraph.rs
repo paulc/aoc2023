@@ -290,7 +290,7 @@ mod tests {
     #[test]
     fn test_astar_grid_large() {
         let g = make_graph_grid("testdata/grid_large.txt");
-        let (cost, _path) = g
+        let (cost, _) = g
             .astar(&Point(0, 0), &Point(99, 99), |&Point(x, y)| {
                 md((x, y), (99, 99)) as u32
             })
