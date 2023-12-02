@@ -28,7 +28,7 @@ fn part2(input: &In) -> Out {
 }
 
 fn main() -> std::io::Result<()> {
-    let mut f = File::open("input")?;
+    let mut f = File::open("input.txt")?;
     let input = parse_input(&mut f);
     println!("Part1: {:?}", part1(&input));
     println!("Part2: {:?}", part2(&input));

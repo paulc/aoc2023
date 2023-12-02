@@ -71,10 +71,10 @@ fn part2(input: &In) -> Out {
 }
 
 fn main() -> std::io::Result<()> {
-    let mut f = File::open("input")?;
+    let mut f = File::open("input.txt")?;
     let input1 = parse_input1(&mut f);
     println!("Part1: {:?}", part1(&input1));
-    f = File::open("input")?;
+    f = File::open("input.txt")?;
     let input2 = parse_input2(&mut f);
     println!("Part2: {:?}", part2(&input2));
     Ok(())
