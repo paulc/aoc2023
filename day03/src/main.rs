@@ -11,47 +11,15 @@ use std::io::ErrorKind::InvalidData;
 use util::grid::Grid;
 use util::point::{Offset, Point};
 
-type In = Grid<Schematic>;
+type In = Grid<char>;
 type Out = u32;
 const PART1_RESULT: Out = 4361;
 const PART2_RESULT: Out = 467835;
 
-#[derive(Debug, PartialEq, Eq)]
-enum Schematic {
-    Empty,
-    Digit(u32),
-    Symbol(char),
-}
-
-impl std::fmt::Display for Schematic {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Schematic::Empty => write!(f, "."),
-            Schematic::Digit(num) => write!(f, "{}", num),
-            Schematic::Symbol(ch) => write!(f, "{}", ch),
-        }
-    }
-}
-
-impl Default for Schematic {
-    fn default() -> Self {
-        Schematic::Empty
-    }
-}
-
 fn parse_input(input: &mut impl Read) -> In {
     let data = BufReader::new(input)
         .lines()
-        .map(|l| {
-            l.unwrap()
-                .chars()
-                .map(|c| match c {
-                    '.' => Schematic::Empty,
-                    '0'..='9' => Schematic::Digit(c.to_digit(10).unwrap() as u32),
-                    _ => Schematic::Symbol(c),
-                })
-                .collect::<Vec<_>>()
-        })
+        .map(|l| l.unwrap().chars().collect::<Vec<_>>())
         .collect::<Vec<_>>();
     Grid::from(data)
 }
@@ -65,23 +33,29 @@ fn find_parts(input: &In) -> Vec<(u32, Vec<Point>)> {
         let mut in_number = false;
         for x in 0..input.size.dx {
             let p = Point::new(x, y);
-            match input.get(p) {
-                Some(Schematic::Digit(n)) => {
+            let c = input.get(p).unwrap();
+            match c {
+                '0'..='9' => {
                     if !in_number {
                         in_number = true;
                     }
-                    number = number * 10 + n;
+                    number = number * 10 + c.to_digit(10).unwrap();
                     points.push(p);
                     'adjacent: for dx in [-1, 0, 1] {
                         for dy in [-1, 0, 1] {
-                            if let Some(Schematic::Symbol(_)) = input.get(p + Offset::new(dx, dy)) {
-                                valid = true;
-                                break 'adjacent;
+                            if let Some(c) = input.get(p + Offset::new(dx, dy)) {
+                                match c {
+                                    '0'..='9' | '.' => {}
+                                    _ => {
+                                        valid = true;
+                                        break 'adjacent;
+                                    }
+                                }
                             }
                         }
                     }
                 }
-                Some(Schematic::Empty) | Some(Schematic::Symbol(_)) => {
+                _ => {
                     if in_number && valid {
                         out.push((number, points.clone()));
                     }
@@ -90,7 +64,6 @@ fn find_parts(input: &In) -> Vec<(u32, Vec<Point>)> {
                     in_number = false;
                     points.clear();
                 }
-                None => panic!("Invalid point: {}", p),
             }
         }
         // Handle End of Line
@@ -106,7 +79,7 @@ fn find_gears(input: &In) -> Vec<Point> {
     for y in 0..input.size.dy {
         for x in 0..input.size.dx {
             let p = Point::new(x, y);
-            if input.get(p).unwrap() == &Schematic::Symbol('*') {
+            if input.get(p).unwrap() == &'*' {
                 gears.push(p);
             }
         }

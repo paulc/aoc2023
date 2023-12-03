@@ -10,21 +10,7 @@ pub struct Grid<T> {
     pub data: Vec<T>,
 }
 
-impl<T: Default> Grid<T> {
-    pub fn new(start: Point, end: Point) -> Self {
-        let size = (end - start) + Offset::new(1, 1);
-        assert!(size.dx >= 0 && size.dy >= 0);
-        let mut data = Vec::with_capacity((size.dx * size.dy) as usize);
-        for _ in 0..(size.dx * size.dy) {
-            data.push(Default::default());
-        }
-        Self {
-            start,
-            end,
-            size,
-            data,
-        }
-    }
+impl<T> Grid<T> {
     pub fn check_bounds(&self, p: Point) -> bool {
         (p.x >= self.start.x) && (p.y >= self.start.y) && (p.x <= self.end.x) && (p.y <= self.end.y)
     }
@@ -67,20 +53,6 @@ impl<T: Default> Grid<T> {
     }
 }
 
-impl<T: Clone + Default> Grid<T> {
-    pub fn draw_line(&mut self, p1: Point, p2: Point, v: T) -> Result<(), ()> {
-        match (p1.x == p2.x, p1.y == p2.y) {
-            (true, _) => Ok(for y in min(p1.y, p2.y)..=max(p1.y, p2.y) {
-                self.set(Point::new(p1.x, y), v.clone())?;
-            }),
-            (_, true) => Ok(for x in min(p1.x, p2.x)..=max(p1.x, p2.x) {
-                self.set(Point::new(x, p1.y), v.clone())?;
-            }),
-            _ => Err(()),
-        }
-    }
-}
-
 impl<T> From<Vec<Vec<T>>> for Grid<T> {
     fn from(v: Vec<Vec<T>>) -> Self {
         assert!(v.len() > 0);
@@ -96,6 +68,34 @@ impl<T> From<Vec<Vec<T>>> for Grid<T> {
             end,
             size,
             data,
+        }
+    }
+}
+
+impl<T: Clone> Grid<T> {
+    pub fn empty(start: Point, end: Point, value: T) -> Self {
+        let size = (end - start) + Offset::new(1, 1);
+        assert!(size.dx >= 0 && size.dy >= 0);
+        let mut data = Vec::with_capacity((size.dx * size.dy) as usize);
+        for _ in 0..(size.dx * size.dy) {
+            data.push(value.clone());
+        }
+        Self {
+            start,
+            end,
+            size,
+            data,
+        }
+    }
+    pub fn draw_line(&mut self, p1: Point, p2: Point, v: T) -> Result<(), ()> {
+        match (p1.x == p2.x, p1.y == p2.y) {
+            (true, _) => Ok(for y in min(p1.y, p2.y)..=max(p1.y, p2.y) {
+                self.set(Point::new(p1.x, y), v.clone())?;
+            }),
+            (_, true) => Ok(for x in min(p1.x, p2.x)..=max(p1.x, p2.x) {
+                self.set(Point::new(x, p1.y), v.clone())?;
+            }),
+            _ => Err(()),
         }
     }
 }
@@ -117,25 +117,12 @@ impl<T: Display> Display for Grid<T> {
 mod tests {
     use super::*;
 
-    #[derive(Debug, Clone, Eq, PartialEq)]
-    struct V(char);
-    impl Default for V {
-        fn default() -> Self {
-            V('.')
-        }
-    }
-    impl Display for V {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", self.0)
-        }
-    }
-
-    fn fill_grid() -> Grid<V> {
-        let mut g: Grid<V> = Grid::new(Point::new(-2, -2), Point::new(2, 2));
+    fn fill_grid() -> Grid<char> {
+        let mut g: Grid<char> = Grid::empty(Point::new(-2, -2), Point::new(2, 2), '.');
         let mut c = 'A';
         for y in -2..=2 {
             for x in -2..=2 {
-                g.set(Point::new(x, y), V(c)).unwrap();
+                g.set(Point::new(x, y), c).unwrap();
                 c = char::from_u32(c as u32 + 1).unwrap();
             }
         }
@@ -144,13 +131,13 @@ mod tests {
 
     #[test]
     fn test_grid() {
-        let mut g: Grid<V> = Grid::new(Point::new(-2, -2), Point::new(2, 2));
-        g.set(Point::new(0, 0), V('X')).unwrap();
+        let mut g: Grid<char> = Grid::empty(Point::new(-2, -2), Point::new(2, 2), '.');
+        g.set(Point::new(0, 0), 'X').unwrap();
         assert_eq!(g.check_bounds(Point::new(-1, -1)), true);
         assert_eq!(g.check_bounds(Point::new(-5, 0)), false);
         assert_eq!(g.get(Point::new(-3, -3)), None);
-        assert_eq!(g.get(Point::new(0, 0)), Some(&V('X')));
-        assert_eq!(g.get(Point::new(-1, -1)), Some(&V('.')));
+        assert_eq!(g.get(Point::new(0, 0)), Some(&'X'));
+        assert_eq!(g.get(Point::new(-1, -1)), Some(&'.'));
     }
 
     #[test]
@@ -179,34 +166,34 @@ mod tests {
                 .into_iter()
                 .map(|p| g.get(p))
                 .collect::<Option<Vec<_>>>(),
-            Some(vec![&V('H'), &V('N'), &V('R'), &V('L')])
+            Some(vec![&'H', &'N', &'R', &'L'])
         );
         assert_eq!(
             g.adjacent(Point::new(2, -2))
                 .into_iter()
                 .map(|p| g.get(p))
                 .collect::<Option<Vec<_>>>(),
-            Some(vec![&V('J'), &V('D')])
+            Some(vec![&'J', &'D'])
         );
     }
 
     #[test]
     fn test_grid_line() {
-        let mut g: Grid<V> = Grid::new(Point::new(-2, -2), Point::new(2, 2));
+        let mut g: Grid<char> = Grid::empty(Point::new(-2, -2), Point::new(2, 2), '.');
         assert_eq!(
-            g.draw_line(Point::new(-2, 0), Point::new(1, 0), V('-')),
+            g.draw_line(Point::new(-2, 0), Point::new(1, 0), '-'),
             Ok(())
         );
         assert_eq!(
-            g.draw_line(Point::new(2, -2), Point::new(2, 2), V('|')),
+            g.draw_line(Point::new(2, -2), Point::new(2, 2), '|'),
             Ok(())
         );
         assert_eq!(
-            g.draw_line(Point::new(-2, 0), Point::new(1, -1), V('-')),
+            g.draw_line(Point::new(-2, 0), Point::new(1, -1), '-'),
             Err(())
         );
         assert_eq!(
-            g.draw_line(Point::new(-2, 0), Point::new(5, 0), V('-')),
+            g.draw_line(Point::new(-2, 0), Point::new(5, 0), '-'),
             Err(())
         );
     }
