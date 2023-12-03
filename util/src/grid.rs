@@ -4,10 +4,10 @@ use std::fmt::Display;
 
 #[derive(Debug, Clone)]
 pub struct Grid<T> {
-    start: Point,
-    end: Point,
-    size: Offset,
-    data: Vec<T>,
+    pub start: Point,
+    pub end: Point,
+    pub size: Offset,
+    pub data: Vec<T>,
 }
 
 impl<T: Default> Grid<T> {
