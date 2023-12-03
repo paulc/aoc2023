@@ -72,10 +72,11 @@ fn find_parts(input: &In) -> Vec<(u32, Vec<Point>)> {
                     }
                     number = number * 10 + n;
                     points.push(p);
-                    for dx in [-1, 0, 1] {
+                    'adjacent: for dx in [-1, 0, 1] {
                         for dy in [-1, 0, 1] {
                             if let Some(Schematic::Symbol(_)) = input.get(p + Offset::new(dx, dy)) {
                                 valid = true;
+                                break 'adjacent;
                             }
                         }
                     }
@@ -123,7 +124,7 @@ fn part2(input: &In) -> Out {
     for g in find_gears(input) {
         'gears: {
             let mut touch: Vec<u32> = Vec::new();
-            // For each part check if touches
+            // For each part check if touches gear
             for (n, p_cover) in &parts {
                 'parts: for p1 in p_cover {
                     for dx in [-1, 0, 1] {
