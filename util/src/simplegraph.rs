@@ -100,6 +100,40 @@ where
         }
         None
     }
+    pub fn floyd(&self) -> HashMap<(&V, &V), Option<u32>> {
+        let mut cost: HashMap<(&V, &V), Option<u32>> = HashMap::new();
+        for u in self.0.iter() {
+            for v in self.0.iter() {
+                if u.0 == v.0 {
+                    cost.insert((&u.0, &v.0), Some(0));
+                } else {
+                    cost.insert(
+                        (&u.0, &v.0),
+                        match u.1.iter().find(|&e| &e.0 == v.0) {
+                            Some(e) => Some(e.1),
+                            None => None,
+                        },
+                    );
+                }
+            }
+        }
+        for r in self.0.iter() {
+            for u in self.0.iter() {
+                for v in self.0.iter() {
+                    let (c1, c2, c3) = (cost[&(u.0, v.0)], cost[&(u.0, r.0)], cost[&(r.0, v.0)]);
+                    if let (None, Some(c2), Some(c3)) = (c1, c2, c3) {
+                        // No existing route from u-v but we do have u->r->v
+                        cost.insert((&u.0, &v.0), Some(c2 + c3));
+                    } else if let (Some(c1), Some(c2), Some(c3)) = (c1, c2, c3) {
+                        if c2 + c3 < c1 {
+                            cost.insert((&u.0, &v.0), Some(c2 + c3));
+                        }
+                    }
+                }
+            }
+        }
+        cost
+    }
 }
 
 impl<V> Display for Graph<V>
@@ -217,10 +251,15 @@ mod tests {
             ("C", "E", 5),
             ("D", "F", 1),
             ("E", "F", 1),
+            ("F", "A", 1),
         ]);
         assert_eq!(
             g.astar(&"A", &"F", |_| 1),
             Some((6, vec!["A", "B", "E", "F"]))
+        );
+        assert_eq!(
+            g.astar(&"B", &"A", |_| 1),
+            Some((5, vec!["B", "E", "F", "A"]))
         );
     }
 
@@ -296,5 +335,32 @@ mod tests {
             })
             .unwrap();
         assert_eq!(cost, 602);
+    }
+
+    #[test]
+    fn test_floyd() {
+        let g = Graph::new_from_edges(vec![
+            ("A", "B", 2),
+            ("A", "C", 3),
+            ("B", "D", 10),
+            ("B", "E", 3),
+            ("C", "D", 3),
+            ("C", "E", 5),
+            ("D", "F", 1),
+            ("E", "F", 1),
+            ("F", "A", 1),
+        ]);
+        let costs = g.floyd();
+        for u in g.0.keys() {
+            for v in g.0.keys() {
+                assert_eq!(
+                    costs[&(u, v)],
+                    match g.astar(u, v, |_| 1) {
+                        Some((c, _)) => Some(c),
+                        None => None,
+                    }
+                );
+            }
+        }
     }
 }
