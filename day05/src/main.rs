@@ -125,6 +125,7 @@ fn part1((seeds, chain): &In) -> Out {
     seeds.iter().map(|s| map_single(*s, chain)).min().unwrap()
 }
 
+// XXX This doesnt work...
 fn _part2((seeds, chain): &In) -> Out {
     let mut seeds: Vec<(i64, i64)> = seeds
         .as_slice()
@@ -142,7 +143,7 @@ fn _part2((seeds, chain): &In) -> Out {
     seeds.first().unwrap().0
 }
 
-// Bruteforce
+// XXX Bruteforce instead
 fn part2((seeds, chain): &In) -> Out {
     let mut result: (i64, i64) = (i64::MAX, 0);
     seeds
