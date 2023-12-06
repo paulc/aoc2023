@@ -125,14 +125,13 @@ fn part1((seeds, chain): &In) -> Out {
     seeds.iter().map(|s| map_single(*s, chain)).min().unwrap()
 }
 
-fn part2((seeds, chain): &In) -> Out {
+fn _part2((seeds, chain): &In) -> Out {
     let mut seeds: Vec<(i64, i64)> = seeds
         .as_slice()
         .chunks_exact(2)
         .map(|c| (c[0], c[0] + c[1] - 1))
         .collect();
     seeds.sort_by_key(|p| p.0);
-    println!("{:?} {}", seeds, count(&seeds));
     for map in chain.iter() {
         seeds = seeds
             .iter()
@@ -140,8 +139,26 @@ fn part2((seeds, chain): &In) -> Out {
             .collect::<Vec<_>>();
         seeds.sort_by_key(|p| p.0);
     }
-    println!("{:?} {}", seeds, count(&seeds));
     seeds.first().unwrap().0
+}
+
+// Bruteforce
+fn part2((seeds, chain): &In) -> Out {
+    let mut result: (i64, i64) = (i64::MAX, 0);
+    seeds
+        .as_slice()
+        .chunks_exact(2)
+        .map(|c| c[0]..c[0] + c[1])
+        .for_each(|r| {
+            for i in r {
+                let n = map_single(i, chain);
+                if n < result.0 {
+                    result = (n, i);
+                }
+            }
+        });
+    println!("{:?}", result);
+    result.0
 }
 
 fn main() -> std::io::Result<()> {
