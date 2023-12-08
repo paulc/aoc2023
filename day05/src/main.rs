@@ -47,6 +47,10 @@ fn parse_input(input: &mut impl Read) -> In {
             }
         }
     });
+    // Make sure we sort the last map
+    if let Some(mut last) = chain.last_mut() {
+        last.sort_by_key(|s| s.0);
+    }
     (seeds, chain)
 }
 
@@ -70,16 +74,8 @@ fn map_range(
     let mut out: Vec<(i64, i64)> = Vec::new();
     let mut seed_start = seed_start;
     let mut end = false;
+
     for (start, offset, range) in map.iter() {
-        println!(
-            "MAP: {:?} SEEDS: {}-{} OFFSET: {} :: {} {}",
-            range,
-            seed_start,
-            seed_end,
-            offset,
-            range.contains(&seed_start),
-            range.contains(&seed_end)
-        );
         match (range.contains(&seed_start), range.contains(&seed_end)) {
             (true, true) => {
                 out.push((seed_start + offset, seed_end + offset));
@@ -111,7 +107,6 @@ fn map_range(
         out.push((seed_start, seed_end));
     }
     out.sort_by_key(|p| p.0);
-    println!("OUT >>> {:?}\n", out);
     out
 }
 
@@ -125,8 +120,64 @@ fn part1((seeds, chain): &In) -> Out {
     seeds.iter().map(|s| map_single(*s, chain)).min().unwrap()
 }
 
+fn merge_range(range: &Vec<i64>) -> Vec<(i64, i64)> {
+    let mut out: Vec<(i64, i64)> = Vec::new();
+    let mut r = (0, 0);
+    for &i in range {
+        if i == r.1 + 1 {
+            r = (r.0, i)
+        } else {
+            if r != (0, 0) {
+                out.push(r);
+            }
+            r = (i, i);
+        }
+    }
+    out.push(r);
+    out.sort();
+    out
+}
+
+fn part2_test((seeds, chain): &In) -> Out {
+    println!("{:?}", chain.iter().map(|m| m.len()).collect::<Vec<_>>());
+    let start = 3281178213;
+    let mut ranges: Vec<(i64, i64)> = vec![(start - 1000, start + 1000)];
+    println!(":: MAP SINGLE");
+    for map in chain.iter() {
+        let mut new: Vec<(i64, i64)> = vec![];
+        for (r1, r2) in &ranges {
+            let map = (*r1..*r2 + 1)
+                .map(|v| {
+                    let mut x = v;
+                    for (start, offset, range) in map.iter() {
+                        if range.contains(&v) {
+                            x = v + offset;
+                            break;
+                        }
+                    }
+                    x
+                })
+                .collect::<Vec<_>>();
+            new.append(&mut merge_range(&map));
+        }
+        println!("{:?}", new);
+        ranges = new;
+    }
+    println!(":: MAP RANGE");
+    let mut seeds: Vec<(i64, i64)> = vec![(start - 1000, start + 1000)];
+    for map in chain.iter() {
+        seeds = seeds
+            .iter()
+            .flat_map(|s| map_range(s.clone(), map))
+            .collect::<Vec<_>>();
+        seeds.sort_by_key(|p| p.0);
+        println!(">> {:?}", seeds);
+    }
+    0
+}
+
 // XXX This doesnt work...
-fn _part2((seeds, chain): &In) -> Out {
+fn part2((seeds, chain): &In) -> Out {
     let mut seeds: Vec<(i64, i64)> = seeds
         .as_slice()
         .chunks_exact(2)
@@ -141,25 +192,6 @@ fn _part2((seeds, chain): &In) -> Out {
         seeds.sort_by_key(|p| p.0);
     }
     seeds.first().unwrap().0
-}
-
-// XXX Bruteforce instead
-fn part2((seeds, chain): &In) -> Out {
-    let mut result: (i64, i64) = (i64::MAX, 0);
-    seeds
-        .as_slice()
-        .chunks_exact(2)
-        .map(|c| c[0]..c[0] + c[1])
-        .for_each(|r| {
-            for i in r {
-                let n = map_single(i, chain);
-                if n < result.0 {
-                    result = (n, i);
-                }
-            }
-        });
-    println!("{:?}", result);
-    result.0
 }
 
 fn main() -> std::io::Result<()> {
