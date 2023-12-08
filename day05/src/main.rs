@@ -48,9 +48,7 @@ fn parse_input(input: &mut impl Read) -> In {
         }
     });
     // Make sure we sort the last map
-    if let Some(mut last) = chain.last_mut() {
-        last.sort_by_key(|s| s.0);
-    }
+    chain.last_mut().unwrap().sort_by_key(|s| s.0);
     (seeds, chain)
 }
 
@@ -110,16 +108,6 @@ fn map_range(
     out
 }
 
-fn count(v: &Vec<(i64, i64)>) -> i64 {
-    let mut count: i64 = 0;
-    v.iter().for_each(|(a, b)| count += (b - a + 1));
-    count
-}
-
-fn part1((seeds, chain): &In) -> Out {
-    seeds.iter().map(|s| map_single(*s, chain)).min().unwrap()
-}
-
 fn merge_range(range: &Vec<i64>) -> Vec<(i64, i64)> {
     let mut out: Vec<(i64, i64)> = Vec::new();
     let mut r = (0, 0);
@@ -136,6 +124,16 @@ fn merge_range(range: &Vec<i64>) -> Vec<(i64, i64)> {
     out.push(r);
     out.sort();
     out
+}
+
+fn count(v: &Vec<(i64, i64)>) -> i64 {
+    let mut count: i64 = 0;
+    v.iter().for_each(|(a, b)| count += (b - a + 1));
+    count
+}
+
+fn part1((seeds, chain): &In) -> Out {
+    seeds.iter().map(|s| map_single(*s, chain)).min().unwrap()
 }
 
 fn part2_test((seeds, chain): &In) -> Out {
