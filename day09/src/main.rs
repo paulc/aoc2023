@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::fmt::Display;
 use std::fs::File;
 use std::io::prelude::*;
@@ -12,7 +13,7 @@ use std::io::ErrorKind::InvalidData;
 type In = Vec<Vec<i32>>;
 type Out = i32;
 const PART1_RESULT: Out = 114;
-const PART2_RESULT: Out = 0;
+const PART2_RESULT: Out = 2;
 
 fn parse_input(input: &mut impl Read) -> In {
     BufReader::new(input)
@@ -46,12 +47,33 @@ fn extrapolate(line: &Vec<i32>) -> i32 {
     stack[0].last().unwrap().clone()
 }
 
+fn extrapolate2(line: &Vec<i32>) -> i32 {
+    let mut stack: Vec<VecDeque<i32>> = Vec::new();
+    stack.push(VecDeque::from(line.clone()));
+    while stack.last().unwrap().iter().any(|&i| i != 0) {
+        let last = stack.last().unwrap();
+        stack.push(
+            last.iter()
+                .zip(last.iter().skip(1))
+                .map(|(a, b)| b - a)
+                .collect::<VecDeque<_>>(),
+        );
+    }
+    let mut front = 0;
+    for i in (0..stack.len()).rev() {
+        let front_new = stack[i].front().unwrap() - front;
+        stack.get_mut(i).unwrap().push_front(front_new);
+        front = front_new;
+    }
+    stack[0].front().unwrap().clone()
+}
+
 fn part1(input: &In) -> Out {
     input.iter().map(|l| extrapolate(l)).sum()
 }
 
 fn part2(input: &In) -> Out {
-    PART2_RESULT
+    input.iter().map(|l| extrapolate2(l)).sum()
 }
 
 fn main() -> std::io::Result<()> {

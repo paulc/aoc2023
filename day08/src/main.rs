@@ -62,6 +62,7 @@ fn part2((turns, nodes): &In) -> Out {
         .collect::<Vec<_>>();
     let mut cycle: Vec<usize> = vec![0; current.len()];
     for (i, &d) in turns.iter().cycle().enumerate() {
+        let mut found_cycle = false;
         current = current
             .iter()
             .map(|c| {
@@ -75,9 +76,10 @@ fn part2((turns, nodes): &In) -> Out {
         current.iter().enumerate().for_each(|(j, c)| {
             if c.chars().last().unwrap() == 'Z' {
                 cycle[j] = i + 1;
+                found_cycle = true;
             }
         });
-        if cycle.iter().all(|&i| i != 0) {
+        if found_cycle && cycle.iter().all(|&i| i != 0) {
             result = cycle.iter().fold(1_usize, |acc, &i| lcm(acc, i));
             break;
         }
