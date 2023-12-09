@@ -1,0 +1,82 @@
+#![allow(unused)]
+
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::fmt::Display;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
+use std::io::Error;
+use std::io::ErrorKind::InvalidData;
+
+type In = Vec<Vec<i32>>;
+type Out = i32;
+const PART1_RESULT: Out = 114;
+const PART2_RESULT: Out = 0;
+
+fn parse_input(input: &mut impl Read) -> In {
+    BufReader::new(input)
+        .lines()
+        .map(|l| {
+            l.unwrap()
+                .split_whitespace()
+                .map(|i| i.parse::<i32>().unwrap())
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
+}
+
+fn extrapolate(line: &Vec<i32>) -> i32 {
+    let mut stack: Vec<Vec<i32>> = vec![line.clone()];
+    while stack.last().unwrap().iter().any(|&i| i != 0) {
+        let last = stack.last().unwrap();
+        stack.push(
+            last.iter()
+                .zip(last.iter().skip(1))
+                .map(|(a, b)| b - a)
+                .collect::<Vec<_>>(),
+        );
+    }
+    let mut add: i32 = 0;
+    for i in (0..stack.len()).rev() {
+        let next = stack[i].last().unwrap() + add;
+        stack.get_mut(i).unwrap().push(next);
+        add = next;
+    }
+    stack[0].last().unwrap().clone()
+}
+
+fn part1(input: &In) -> Out {
+    input.iter().map(|l| extrapolate(l)).sum()
+}
+
+fn part2(input: &In) -> Out {
+    PART2_RESULT
+}
+
+fn main() -> std::io::Result<()> {
+    let mut f = File::open("input.txt")?;
+    let input = parse_input(&mut f);
+    println!("Part1: {:?}", part1(&input));
+    println!("Part2: {:?}", part2(&input));
+    Ok(())
+}
+
+#[test]
+fn test_part1() {
+    let input = parse_input(&mut TESTDATA.trim_matches('\n').as_bytes());
+    assert_eq!(part1(&input), PART1_RESULT);
+}
+
+#[test]
+fn test_part2() {
+    let input = parse_input(&mut TESTDATA.trim_matches('\n').as_bytes());
+    assert_eq!(part2(&input), PART2_RESULT);
+}
+
+#[cfg(test)]
+const TESTDATA: &str = "
+0 3 6 9 12 15
+1 3 6 10 15 21
+10 13 16 21 30 45
+";
