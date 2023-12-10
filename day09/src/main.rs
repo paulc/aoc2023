@@ -47,9 +47,8 @@ fn extrapolate(line: &Vec<i32>) -> i32 {
     stack[0].last().unwrap().clone()
 }
 
-fn extrapolate2(line: &Vec<i32>) -> i32 {
-    let mut stack: Vec<VecDeque<i32>> = Vec::new();
-    stack.push(VecDeque::from(line.clone()));
+fn predict(line: &Vec<i32>) -> i32 {
+    let mut stack: Vec<VecDeque<i32>> = vec![VecDeque::from(line.clone())];
     while stack.last().unwrap().iter().any(|&i| i != 0) {
         let last = stack.last().unwrap();
         stack.push(
@@ -59,7 +58,7 @@ fn extrapolate2(line: &Vec<i32>) -> i32 {
                 .collect::<VecDeque<_>>(),
         );
     }
-    let mut front = 0;
+    let mut front: i32 = 0;
     for i in (0..stack.len()).rev() {
         let front_new = stack[i].front().unwrap() - front;
         stack.get_mut(i).unwrap().push_front(front_new);
@@ -73,7 +72,7 @@ fn part1(input: &In) -> Out {
 }
 
 fn part2(input: &In) -> Out {
-    input.iter().map(|l| extrapolate2(l)).sum()
+    input.iter().map(|l| predict(l)).sum()
 }
 
 fn main() -> std::io::Result<()> {

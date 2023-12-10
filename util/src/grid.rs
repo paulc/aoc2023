@@ -51,6 +51,28 @@ impl<T> Grid<T> {
             .filter(|&p| self.check_bounds(p))
             .collect()
     }
+    pub fn index_to_point(&self, i: usize) -> Point {
+        self.start + Offset::new(i as i32 % self.size.dx, i as i32 / self.size.dx)
+    }
+}
+
+impl<T> Grid<T>
+where
+    T: PartialEq + Eq,
+{
+    pub fn find(&self, t: &T) -> Vec<Point> {
+        self.data
+            .iter()
+            .enumerate()
+            .filter_map(|(i, d)| {
+                if d == t {
+                    Some(self.index_to_point(i))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+    }
 }
 
 impl<T> From<Vec<Vec<T>>> for Grid<T> {
@@ -175,6 +197,18 @@ mod tests {
                 .collect::<Option<Vec<_>>>(),
             Some(vec![&'J', &'D'])
         );
+    }
+
+    #[test]
+    fn test_grid_find() {
+        let mut g = fill_grid();
+        assert_eq!(g.find(&'A'), vec![Point::new(-2, -2)]);
+        assert_eq!(g.find(&'M'), vec![Point::new(0, 0)]);
+        assert_eq!(g.find(&'Y'), vec![Point::new(2, 2)]);
+        assert_eq!(g.find(&'Z'), vec![]);
+        // Find multiple
+        g.set(Point::new(1, 1), 'A').unwrap();
+        assert_eq!(g.find(&'A'), vec![Point::new(-2, -2), Point::new(1, 1)]);
     }
 
     #[test]
