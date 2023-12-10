@@ -37,7 +37,7 @@ const PIPES: [(char, (Offset, Offset)); 6] = [
 ];
 
 fn map_direction(d: Offset, pipe: &char) -> Option<Offset> {
-    // Flip input direction
+    // Flip input direction to match with pipe connections
     let d = match (d) {
         LEFT => RIGHT,
         RIGHT => LEFT,
@@ -54,21 +54,6 @@ fn map_direction(d: Offset, pipe: &char) -> Option<Offset> {
     } else {
         None
     }
-}
-
-fn debug_pos(p: Point, o: Offset) -> String {
-    format!(
-        "({},{}) -> {}",
-        p.x,
-        p.y,
-        match o {
-            LEFT => "LEFT",
-            RIGHT => "RIGHT",
-            UP => "UP",
-            DOWN => "DOWN",
-            _ => "?",
-        }
-    )
 }
 
 fn find_start(input: &In) -> (Point, Vec<Offset>) {
@@ -107,7 +92,75 @@ fn part1(input: &In) -> Out {
     (find_path(input, start, direction[0]).len() + 1) / 2
 }
 
-fn part2(input: &In) -> Out {
+fn expand_grid(g: &mut Grid<char>, p: Point, c: char) {
+    let expanded = match c {
+        '|' => [[0, 1, 0], [0, 1, 0], [0, 1, 0]],
+        '-' => [[0, 0, 0], [1, 1, 1], [0, 0, 0]],
+        'L' => [[0, 1, 0], [0, 1, 1], [0, 0, 0]],
+        'J' => [[0, 1, 0], [1, 1, 0], [0, 0, 0]],
+        '7' => [[0, 0, 0], [1, 1, 0], [0, 1, 0]],
+        'F' => [[0, 0, 0], [0, 1, 1], [0, 1, 0]],
+        'S' => [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
+        _ => [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+    };
+    for dx in [-1, 0, 1] {
+        for dy in [-1, 0, 1] {
+            let o = Offset::new(dx, dy);
+            if expanded[(dy + 1) as usize][(dx + 1) as usize] == 1 {
+                g.set(p + o, '*').unwrap();
+            }
+        }
+    }
+}
+
+fn flood_fill(g: &mut Grid<char>) {
+    let mut visited: HashSet<Point> = HashSet::new();
+    let mut available: Vec<Point> = vec![Point::new(0, 0)];
+    while let Some(p) = available.pop() {
+        if !visited.contains(&p) {
+            visited.insert(p);
+            g.set(p, 'O').unwrap();
+            g.adjacent(p)
+                .iter()
+                .filter(|&p| g.get(*p).unwrap() == &'.')
+                .for_each(|p| available.push(*p));
+        }
+    }
+}
+
+fn part2_flood_fill(input: &In) -> Out {
+    let (start, direction) = find_start(input);
+    let mut clean = Grid::empty(input.start, input.end, '.');
+    find_path(input, start, direction[0]).iter().for_each(|&p| {
+        clean.set(p, *input.get(p).unwrap()).unwrap();
+    });
+    let mut expanded = Grid::empty(
+        input.start,
+        Point::new(input.end.x * 3, input.end.y * 3),
+        '.',
+    );
+    for y in 0..input.size.dy {
+        for x in 0..input.size.dx {
+            expand_grid(
+                &mut expanded,
+                Point::new(x * 3 + 1, y * 3 + 1),
+                *clean.get(Point::new(x, y)).unwrap(),
+            );
+        }
+    }
+    flood_fill(&mut expanded);
+    let mut count: usize = 0;
+    for y in 0..input.size.dy {
+        for x in 0..input.size.dx {
+            if *expanded.get(Point::new(x * 3 + 1, y * 3 + 1)).unwrap() == '.' {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
+fn part2_trace(input: &In) -> Out {
     let (start, direction) = find_start(input);
 
     let mut clean = Grid::empty(input.start, input.end, '.');
@@ -132,21 +185,25 @@ fn part2(input: &In) -> Out {
         let mut inside = false;
         let mut prev: Option<char> = None;
         for x in 0..input.size.dx {
-            match (prev, clean.get(Point::new(x, y)).unwrap()) {
-                (_, '|') => inside = !inside,
-                (None, 'F') => prev = Some('F'),
-                (Some('F'), '7') => prev = None,
-                (Some('F'), 'J') => {
+            match (prev, clean.get(Point::new(x, y))) {
+                (_, Some('|')) => inside = !inside,
+                (None, Some('F')) => prev = Some('F'),
+                // ┏┅┅┓ = same side
+                (Some('F'), Some('7')) => prev = None,
+                // ┏┅┅┛ = other side
+                (Some('F'), Some('J')) => {
                     inside = !inside;
                     prev = None
                 }
-                (None, 'L') => prev = Some('L'),
-                (Some('L'), 'J') => prev = None,
-                (Some('L'), '7') => {
+                (None, Some('L')) => prev = Some('L'),
+                // ┗┅┅┛ = same side
+                (Some('L'), Some('J')) => prev = None,
+                // ┗┅┅┓ = other side
+                (Some('L'), Some('7')) => {
                     inside = !inside;
                     prev = None
                 }
-                (_, '.') => {
+                (_, Some('.')) => {
                     if inside {
                         // clean.set(Point::new(x, y), 'I').unwrap();
                         count += 1
@@ -156,8 +213,12 @@ fn part2(input: &In) -> Out {
             }
         }
     }
-    println!("{}", clean);
+    // println!("{}", clean);
     count
+}
+
+fn part2(input: &In) -> Out {
+    part2_trace(input)
 }
 
 fn main() -> std::io::Result<()> {
