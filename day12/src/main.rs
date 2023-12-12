@@ -37,59 +37,41 @@ fn parse_input(input: &mut impl Read) -> In {
 fn hash_state(a: &[char], b: &[usize]) -> (u64, u64) {
     let mut h1 = DefaultHasher::new();
     let mut h2 = DefaultHasher::new();
-    for &c in a {
-        c.hash(&mut h1);
-    }
-    for &i in a {
-        i.hash(&mut h2);
-    }
+    a.iter().for_each(|c| c.hash(&mut h1));
+    b.iter().for_each(|i| i.hash(&mut h1));
     (h1.finish(), h2.finish())
 }
 
+// Check recursively caching results
 fn check(springs: &[char], groups: &[usize], cache: &mut HashMap<(u64, u64), usize>) -> usize {
-    // println!("CHECK: {:?} {:?}", springs, groups);
-
     // No groups left - remaining springs must be empty
     if groups.is_empty() {
         if springs.contains(&'#') {
-            // println!("{:?}", "NOT FOUND");
             return 0;
         } else {
-            // println!("{:?}", "FOUND");
             return 1;
         }
     }
 
     // Check if we have enough spring positions left for groups
     if springs.len() < groups.iter().sum() {
-        // println!("{:?}", "NOT FOUND (TOO SHORT)");
+        cache.insert(hash_state(springs, groups), 0);
         return 0;
     }
 
     // Check cache
-    /*
     if let Some(&result) = cache.get(&hash_state(springs, groups)) {
-        println!("Found Cache: {:?} {:?} = {}", springs, groups, result);
         return result;
     }
-    */
 
     let next_len = groups[0];
     let mut result: usize = 0;
+
     if springs[0] == '.' {
         // Step forward one position
         result += check(&springs[1..], &groups, cache);
     } else if springs[0] == '#' || springs[0] == '?' {
         // Check if we can match full group
-        /*
-        println!(
-            "Check Group:: {:?} {} {}",
-            springs[1..next_len].iter().all(|&c| c != '.')
-                && (springs.len() == next_len || springs[next_len] != '#'),
-            springs.len(),
-            next_len
-        );
-        */
         if springs[1..next_len].iter().all(|&c| c != '.')
             && (springs.len() == next_len || springs[next_len] != '#')
         {
@@ -100,15 +82,15 @@ fn check(springs: &[char], groups: &[usize], cache: &mut HashMap<(u64, u64), usi
                 cache,
             );
         }
+        // If springs[0] was a '?' also test the '.' version
         if springs[0] == '?' {
             result += check(&springs[1..], &groups, cache);
         }
     }
-    /*
-    if result > 0 {
-        cache.insert(hash_state(springs, groups), result);
-    }
-    */
+
+    // Insert state into cache
+    cache.insert(hash_state(springs, groups), result);
+
     result
 }
 
