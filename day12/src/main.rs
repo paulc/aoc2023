@@ -44,7 +44,7 @@ fn hash_state(a: &[char], b: &[usize]) -> (u64, u64) {
 
 // Check recursively caching results
 fn check(springs: &[char], groups: &[usize], cache: &mut HashMap<(u64, u64), usize>) -> usize {
-    // No groups left - remaining springs must be empty
+    // No groups left - check if there are any potential springs not used
     if groups.is_empty() {
         if springs.contains(&'#') {
             return 0;
@@ -55,6 +55,7 @@ fn check(springs: &[char], groups: &[usize], cache: &mut HashMap<(u64, u64), usi
 
     // Check if we have enough spring positions left for groups
     if springs.len() < groups.iter().sum() {
+        // Insert state into cache
         cache.insert(hash_state(springs, groups), 0);
         return 0;
     }
@@ -67,24 +68,24 @@ fn check(springs: &[char], groups: &[usize], cache: &mut HashMap<(u64, u64), usi
     let next_len = groups[0];
     let mut result: usize = 0;
 
-    if springs[0] == '.' {
-        // Step forward one position
+    // Check next spring - '?' matches both arms so we recursively split search
+    if springs[0] == '.' || springs[0] == '?' {
+        // Cant match group - step forward one position
         result += check(&springs[1..], &groups, cache);
-    } else if springs[0] == '#' || springs[0] == '?' {
-        // Check if we can match full group
+    }
+    if springs[0] == '#' || springs[0] == '?' {
+        // Check if we can match current group
+        // Look for group of '?' or '#' of correct length followed by
+        // either '.' or '?' or the end of the data
         if springs[1..next_len].iter().all(|&c| c != '.')
             && (springs.len() == next_len || springs[next_len] != '#')
         {
-            // If we can step forward full group
+            // If we can we can step forward the full group length
             result += check(
                 &springs[(next_len + 1).min(springs.len())..],
                 &groups[1..],
                 cache,
             );
-        }
-        // If springs[0] was a '?' also test the '.' version
-        if springs[0] == '?' {
-            result += check(&springs[1..], &groups, cache);
         }
     }
 
