@@ -1,9 +1,11 @@
 #![allow(unused)]
 
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::fs::File;
+use std::hash::{Hash, Hasher};
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::Error;
@@ -13,92 +15,7 @@ use util::combinations::combinations;
 type In = Vec<(Vec<char>, Vec<usize>)>;
 type Out = usize;
 const PART1_RESULT: Out = 21;
-const PART2_RESULT: Out = 0;
-
-/*
-
-#[derive(Debug)]
-struct Spring {
-    springs: Vec<char>,
-    groups: Vec<usize>,
-    unknown: Vec<usize>,
-    total: usize,
-    known: usize,
-}
-
-impl Spring {
-    fn find_groups(springs: &Vec<char>) -> Vec<usize> {
-        let mut out = vec![];
-        let mut count = 0;
-        springs.iter().for_each(|&s| {
-            if s == '#' {
-                count += 1;
-            } else {
-                if count > 0 {
-                    out.push(count);
-                }
-                count = 0;
-            }
-        });
-        // Last element
-        if count > 0 {
-            out.push(count);
-        }
-        out
-    }
-    fn check(&self) -> usize {
-        combinations(&self.unknown, self.total - self.known)
-            .iter()
-            .filter(|c| {
-                let mut springs = self.springs.clone();
-                c.iter().for_each(|&i| springs[i] = '#');
-                Spring::find_groups(&springs) == self.groups
-            })
-            .count()
-    }
-}
-
-fn parse_input1(input: &mut impl Read) -> In {
-    let data = BufReader::new(input)
-        .lines()
-        .map(|l| {
-            let l = l.unwrap();
-            let (l, r) = l.split_once(" ").unwrap();
-            let mut unknown: Vec<usize> = vec![];
-            let mut known: usize = 0;
-            let springs = l
-                .chars()
-                .enumerate()
-                .map(|(i, c)| {
-                    if c == '?' {
-                        unknown.push(i);
-                        '.'
-                    } else {
-                        if c == '#' {
-                            known += 1
-                        }
-                        c
-                    }
-                })
-                .collect::<Vec<_>>();
-            let groups = r
-                .split(',')
-                .map(|n| n.parse::<usize>().unwrap())
-                .collect::<Vec<_>>();
-            let total: usize = groups.iter().sum();
-            Spring {
-                springs,
-                groups,
-                unknown,
-                total,
-                known,
-            }
-        })
-        .collect::<Vec<_>>();
-    data
-}
-
-*/
+const PART2_RESULT: Out = 525152;
 
 fn parse_input(input: &mut impl Read) -> In {
     let data = BufReader::new(input)
@@ -117,8 +34,21 @@ fn parse_input(input: &mut impl Read) -> In {
     data
 }
 
-fn check(springs: &[char], groups: &[usize]) -> usize {
-    // println!("{:?} {:?}", springs, groups);
+fn hash_state(a: &[char], b: &[usize]) -> (u64, u64) {
+    let mut h1 = DefaultHasher::new();
+    let mut h2 = DefaultHasher::new();
+    for &c in a {
+        c.hash(&mut h1);
+    }
+    for &i in a {
+        i.hash(&mut h2);
+    }
+    (h1.finish(), h2.finish())
+}
+
+fn check(springs: &[char], groups: &[usize], cache: &mut HashMap<(u64, u64), usize>) -> usize {
+    // println!("CHECK: {:?} {:?}", springs, groups);
+
     // No groups left - remaining springs must be empty
     if groups.is_empty() {
         if springs.contains(&'#') {
@@ -129,50 +59,88 @@ fn check(springs: &[char], groups: &[usize]) -> usize {
             return 1;
         }
     }
+
     // Check if we have enough spring positions left for groups
     if springs.len() < groups.iter().sum() {
-        // println!("{:?}", "NOT FOUND");
+        // println!("{:?}", "NOT FOUND (TOO SHORT)");
         return 0;
     }
+
+    // Check cache
+    /*
+    if let Some(&result) = cache.get(&hash_state(springs, groups)) {
+        println!("Found Cache: {:?} {:?} = {}", springs, groups, result);
+        return result;
+    }
+    */
+
     let next_len = groups[0];
     let mut result: usize = 0;
     if springs[0] == '.' {
         // Step forward one position
-        result += check(&springs[1..], &groups);
+        result += check(&springs[1..], &groups, cache);
     } else if springs[0] == '#' || springs[0] == '?' {
         // Check if we can match full group
         /*
-            println!(
-                "Check Group:: {:?} {} {}",
-                springs[1..next_len].iter().all(|&c| c != '.'),
-                springs.len(),
-                next_len
-            );
+        println!(
+            "Check Group:: {:?} {} {}",
+            springs[1..next_len].iter().all(|&c| c != '.')
+                && (springs.len() == next_len || springs[next_len] != '#'),
+            springs.len(),
+            next_len
+        );
         */
         if springs[1..next_len].iter().all(|&c| c != '.')
             && (springs.len() == next_len || springs[next_len] != '#')
         {
             // If we can step forward full group
-            result += check(&springs[(next_len + 1).min(springs.len())..], &groups[1..]);
+            result += check(
+                &springs[(next_len + 1).min(springs.len())..],
+                &groups[1..],
+                cache,
+            );
         }
         if springs[0] == '?' {
-            result += check(&springs[1..], &groups);
+            result += check(&springs[1..], &groups, cache);
         }
     }
+    /*
+    if result > 0 {
+        cache.insert(hash_state(springs, groups), result);
+    }
+    */
     result
 }
 
 fn part1(input: &In) -> Out {
+    let mut cache: HashMap<(u64, u64), usize> = HashMap::new();
     input
         .iter()
-        .map(|s| check(s.0.as_slice(), s.1.as_slice()))
+        .map(|s| check(s.0.as_slice(), s.1.as_slice(), &mut cache))
         .sum()
 }
 
 fn part2(input: &In) -> Out {
+    let mut cache: HashMap<(u64, u64), usize> = HashMap::new();
     input
         .iter()
-        .map(|s| check(s.0.as_slice(), s.1.as_slice()))
+        .map(|(s, g)| {
+            let s = s
+                .iter()
+                .cloned()
+                .chain(vec!['?'].into_iter())
+                .cycle()
+                .take((s.len() + 1) * 5 - 1)
+                .collect::<Vec<_>>();
+            let g = g
+                .iter()
+                .cycle()
+                .take(g.len() * 5)
+                .cloned()
+                .collect::<Vec<_>>();
+            (s, g)
+        })
+        .map(|(s, g)| check(s.as_slice(), g.as_slice(), &mut cache))
         .sum()
 }
 
