@@ -12,7 +12,7 @@ use std::io::ErrorKind::InvalidData;
 type In = Vec<Vec<Vec<char>>>;
 type Out = usize;
 const PART1_RESULT: Out = 405;
-const PART2_RESULT: Out = 0;
+const PART2_RESULT: Out = 400;
 
 fn parse_input(input: &mut impl Read) -> In {
     let mut out: Vec<Vec<Vec<char>>> = vec![];
@@ -30,43 +30,99 @@ fn parse_input(input: &mut impl Read) -> In {
     out
 }
 
-fn check_reflection(v: &Vec<usize>) -> Option<usize> {
+// Check 1D vector for reflections & return reflection point
+fn check_reflection(v: &Vec<usize>, ignore: Option<usize>) -> Option<usize> {
     let len = v.len();
     for i in (1..len) {
         let l = &v[(if i > len / 2 { i - (len - i) } else { 0 })..i];
         let r = &mut v.clone()[i..(i + i).min(v.len())];
         r.reverse();
         if l == r {
+            if let Some(ignore) = ignore {
+                if i == ignore {
+                    continue;
+                }
+            }
             return Some(i);
         }
     }
     None
 }
 
-fn find_reflection(p: &Vec<Vec<char>>) -> Option<usize> {
-    let rows = p
+// Flatten 2D binary vector into 2 x 1D usize vectors (rows/columns)
+fn flatten_rows_cols(v: &Vec<Vec<char>>) -> (Vec<usize>, Vec<usize>) {
+    let rows = v
         .iter()
         .map(|r| {
             r.iter()
                 .fold(0, |acc, &c| if c == '#' { (acc * 2) + 1 } else { acc * 2 })
         })
         .collect::<Vec<_>>();
-
-    if let Some(r) = check_reflection(&rows) {
-        return Some(100 * r);
-    }
-    let cols = (0..p[0].len())
+    let cols = (0..v[0].len())
         .map(|x| {
-            (0..p.len())
-                .map(|y| p[y][x])
+            (0..v.len())
+                .map(|y| v[y][x])
                 .fold(0, |acc, c| if c == '#' { (acc * 2) + 1 } else { acc * 2 })
         })
         .collect::<Vec<_>>();
+    (rows, cols)
+}
 
-    if let Some(c) = check_reflection(&cols) {
+// Simple reflection
+fn find_reflection(p: &Vec<Vec<char>>) -> Option<usize> {
+    // Flatten grid into 2 x 1D arrays (binary vector -> usize)
+    let (rows, cols) = flatten_rows_cols(p);
+    // Check rows
+    if let Some(r) = check_reflection(&rows, None) {
+        return Some(100 * r);
+    }
+    // Check cols
+    if let Some(c) = check_reflection(&cols, None) {
         return Some(c);
     }
     None
+}
+
+// Reflection with smudge
+fn find_reflection2(p: &Vec<Vec<char>>) -> Option<usize> {
+    // Flatten grid into 2 x 1D arrays (binary vector -> usize)
+    let (mut rows, mut cols) = flatten_rows_cols(p);
+    // For each element in the 1D flattened vector we
+    // XOR each bit and test for reflection (ignoring
+    // any simple reflection)
+    // (should avoid any reallocations)
+    let ignore = check_reflection(&rows, None);
+    let bits = p[0].len();
+    for i in (0..rows.len()) {
+        for b in (0..=bits) {
+            rows[i] ^= 1 << b;
+            if let Some(r) = check_reflection(&rows, ignore) {
+                return Some(100 * r);
+            }
+            // Make sure we reset bit
+            rows[i] ^= 1 << b;
+        }
+    }
+    // Do the same for cols
+    let ignore = check_reflection(&cols, None);
+    let bits = p.len();
+    for i in (0..cols.len()) {
+        for b in (0..=bits) {
+            cols[i] ^= 1 << b;
+            if let Some(c) = check_reflection(&cols, ignore) {
+                return Some(c);
+            }
+            cols[i] ^= 1 << b;
+        }
+    }
+    None
+}
+
+fn print_grid(g: &Vec<Vec<char>>) -> String {
+    g.iter()
+        .map(|r| r.iter().collect::<String>())
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn part1(input: &In) -> Out {
@@ -74,7 +130,7 @@ fn part1(input: &In) -> Out {
 }
 
 fn part2(input: &In) -> Out {
-    PART2_RESULT
+    input.iter().map(|p| find_reflection2(p).unwrap()).sum()
 }
 
 fn main() -> std::io::Result<()> {
