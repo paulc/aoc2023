@@ -69,7 +69,11 @@ fn check(springs: &[char], groups: &[usize], cache: &mut HashMap<(u64, u64), usi
     let next_len = groups[0];
     let mut result: usize = 0;
 
-    // Check next spring - '?' matches both arms so we recursively split search
+    // Check next spring:
+    // '.' - step forward
+    // '#' - check if we can match the next group and consume
+    // '?' - do both
+
     if springs[0] == '.' || springs[0] == '?' {
         // Cant match group - step forward one position
         result += check(&springs[1..], &groups, cache);
