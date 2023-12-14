@@ -79,9 +79,9 @@ impl<T> From<Vec<Vec<T>>> for Grid<T> {
     fn from(v: Vec<Vec<T>>) -> Self {
         assert!(v.len() > 0);
         let start = Point::new(0, 0);
-        let end = Point::new(v[0].len() as i32, v.len() as i32);
-        let size = end - start;
-        let mut data = Vec::with_capacity((size.dx * size.dy) as usize);
+        let end = Point::new(v[0].len() as i32 - 1, v.len() as i32 - 1);
+        let size = (end - start) + Offset::new(1, 1);
+        let mut data = Vec::with_capacity(((size.dx + 1) * (size.dy + 1)) as usize);
         for row in v {
             data.extend(row.into_iter());
         }
