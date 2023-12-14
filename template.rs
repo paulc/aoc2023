@@ -11,7 +11,7 @@ use std::io::ErrorKind::InvalidData;
 use std::time::Instant;
 
 type In = ();
-type Out = u32;
+type Out = usize;
 const PART1_RESULT: Out = 0;
 const PART2_RESULT: Out = 0;
 

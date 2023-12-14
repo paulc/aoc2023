@@ -68,14 +68,25 @@ fn part1(input: &In) -> Out {
 }
 
 fn part2(input: &In) -> Out {
-    let mut seen: HashMap<Vec<char>, usize> = HashMap::new();
+    let mut seen: HashMap<Vec<usize>, usize> = HashMap::new();
     let mut count: usize = 0;
     let mut tilted = input.clone();
-    seen.insert(input.data.clone(), 0);
+    let k = input
+        .data
+        .iter()
+        .enumerate()
+        .filter_map(|(i, &c)| if c == 'O' { Some(i) } else { None })
+        .collect::<Vec<usize>>();
+    seen.insert(k, 0);
     loop {
         tilted = cycle(&tilted);
         count += 1;
-        let k = tilted.data.clone();
+        let k = tilted
+            .data
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &c)| if c == 'O' { Some(i) } else { None })
+            .collect::<Vec<usize>>();
         if let Some(start) = seen.get(&k) {
             // println!("Found cycle: start={} count={}", start, count);
             let cycle_len = count - start;
