@@ -76,14 +76,14 @@ fn part1(input: &In) -> Out {
 }
 
 fn part2(input: &In) -> Out {
-    let mut seen: HashMap<Vec<u64>, usize> = HashMap::new();
+    let mut seen: HashMap<Vec<u8>, usize> = HashMap::new();
     let mut count: usize = 0;
     let mut tilted = input.clone();
-    seen.insert(flatten(&input), 0);
+    seen.insert(input.data.clone(), 0);
     loop {
         tilted = cycle(&tilted);
         count += 1;
-        let k = flatten(&tilted);
+        let k = tilted.data.clone();
         if let Some(start) = seen.get(&k) {
             // println!("Found cycle: start={} count={}", start, count);
             let cycle_len = count - start;
