@@ -12,7 +12,7 @@ use std::time::Instant;
 use util::grid::Grid;
 use util::point::*;
 
-type In = Grid<char>;
+type In = Grid<u8>;
 type Out = i32;
 const PART1_RESULT: Out = 136;
 const PART2_RESULT: Out = 64;
@@ -20,14 +20,14 @@ const PART2_RESULT: Out = 64;
 fn parse_input(input: &mut impl Read) -> In {
     let data = BufReader::new(input)
         .lines()
-        .map(|l| l.unwrap().chars().collect::<Vec<_>>())
+        .map(|l| l.unwrap().bytes().collect::<Vec<_>>())
         .collect::<Vec<_>>();
     Grid::from(data)
 }
 
-fn tilt(input: &Grid<char>, d: Offset) -> Grid<char> {
+fn tilt(input: &Grid<u8>, d: Offset) -> Grid<u8> {
     let mut tilted = input.clone();
-    let mut rocks = tilted.find(&'O');
+    let mut rocks = tilted.find(&b'O');
     match d {
         UP => {}
         DOWN => rocks.reverse(),
@@ -41,9 +41,9 @@ fn tilt(input: &Grid<char>, d: Offset) -> Grid<char> {
     rocks.iter().for_each(|&p| {
         let mut p1 = p;
         let mut p2 = p + d;
-        while tilted.check_bounds(p2) && tilted.get(p2).unwrap() == &'.' {
-            tilted.set(p1, '.');
-            tilted.set(p2, 'O');
+        while tilted.check_bounds(p2) && tilted.get(p2).unwrap() == &b'.' {
+            tilted.set(p1, b'.');
+            tilted.set(p2, b'O');
             p1 = p2;
             p2 = p2 + d;
         }
@@ -51,42 +51,39 @@ fn tilt(input: &Grid<char>, d: Offset) -> Grid<char> {
     tilted
 }
 
-fn cycle(input: &Grid<char>) -> Grid<char> {
+fn cycle(input: &Grid<u8>) -> Grid<u8> {
     let c1 = tilt(input, UP);
     let c2 = tilt(&c1, LEFT);
     let c3 = tilt(&c2, DOWN);
     tilt(&c3, RIGHT)
 }
 
+fn flatten(g: &Grid<u8>) -> Vec<u64> {
+    let out: Vec<u64> = vec![];
+    g.data
+        .chunks(8)
+        .map(|c| (0..c.len()).map(|i| (c[i] as u64) << i).sum())
+        .collect::<Vec<_>>()
+}
+
 fn part1(input: &In) -> Out {
     let mut tilted = tilt(input, UP);
     tilted
-        .find(&'O')
+        .find(&b'O')
         .iter()
         .map(|&p| tilted.size.dy - p.y)
         .sum::<i32>()
 }
 
 fn part2(input: &In) -> Out {
-    let mut seen: HashMap<Vec<usize>, usize> = HashMap::new();
+    let mut seen: HashMap<Vec<u64>, usize> = HashMap::new();
     let mut count: usize = 0;
     let mut tilted = input.clone();
-    let k = input
-        .data
-        .iter()
-        .enumerate()
-        .filter_map(|(i, &c)| if c == 'O' { Some(i) } else { None })
-        .collect::<Vec<usize>>();
-    seen.insert(k, 0);
+    seen.insert(flatten(&input), 0);
     loop {
         tilted = cycle(&tilted);
         count += 1;
-        let k = tilted
-            .data
-            .iter()
-            .enumerate()
-            .filter_map(|(i, &c)| if c == 'O' { Some(i) } else { None })
-            .collect::<Vec<usize>>();
+        let k = flatten(&tilted);
         if let Some(start) = seen.get(&k) {
             // println!("Found cycle: start={} count={}", start, count);
             let cycle_len = count - start;
@@ -100,7 +97,7 @@ fn part2(input: &In) -> Out {
         seen.insert(k, count);
     }
     tilted
-        .find(&'O')
+        .find(&b'O')
         .iter()
         .map(|&p| tilted.size.dy - p.y)
         .sum::<i32>()
