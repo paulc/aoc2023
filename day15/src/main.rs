@@ -80,13 +80,10 @@ fn part2(input: &In) -> Out {
             }
         }
         Operation::Remove(k, h) => {
-            let b = boxes.get(h as usize).unwrap();
-            let b1 = b
-                .into_iter()
-                .filter(|i| i.0 != k)
-                .cloned()
-                .collect::<Vec<_>>();
-            boxes[h as usize] = b1;
+            let mut b = boxes.get_mut(h as usize).unwrap();
+            if let Some(i) = b.iter().position(|i| i.0 == k) {
+                b.remove(i);
+            }
         }
     });
     boxes
