@@ -6,7 +6,6 @@ use std::fmt::Display;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::io::Error;
 use std::io::ErrorKind::InvalidData;
 use std::time::Instant;
 
@@ -15,17 +14,18 @@ type Out = usize;
 const PART1_RESULT: Out = 1320;
 const PART2_RESULT: Out = 145;
 
-fn parse_input(input: &mut impl Read) -> In {
-    let mut i = BufReader::new(input).lines();
+fn parse_input(input: &mut impl Read) -> std::io::Result<In> {
+    let mut s = String::new();
+    input.read_to_string(&mut s)?;
     let mut data: Vec<Vec<u8>> = vec![vec![]];
-    i.next().unwrap().unwrap().bytes().for_each(|i| {
+    s.trim_end().as_bytes().iter().for_each(|&i| {
         if i == b',' {
             data.push(vec![])
         } else {
             data.last_mut().unwrap().push(i)
         }
     });
-    data
+    Ok(data)
 }
 
 fn hash(k: &Vec<u8>) -> u8 {
@@ -96,7 +96,7 @@ fn part2(input: &In) -> Out {
 
 fn main() -> std::io::Result<()> {
     let mut f = File::open("input.txt")?;
-    let input = parse_input(&mut f);
+    let input = parse_input(&mut f)?;
     let p1 = Instant::now();
     println!(
         "Part1: {:?} ({}s)",
@@ -114,13 +114,13 @@ fn main() -> std::io::Result<()> {
 
 #[test]
 fn test_part1() {
-    let input = parse_input(&mut TESTDATA.trim_matches('\n').as_bytes());
+    let input = parse_input(&mut TESTDATA.trim_matches('\n').as_bytes()).unwrap();
     assert_eq!(part1(&input), PART1_RESULT);
 }
 
 #[test]
 fn test_part2() {
-    let input = parse_input(&mut TESTDATA.trim_matches('\n').as_bytes());
+    let input = parse_input(&mut TESTDATA.trim_matches('\n').as_bytes()).unwrap();
     assert_eq!(part2(&input), PART2_RESULT);
 }
 
