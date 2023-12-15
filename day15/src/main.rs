@@ -67,7 +67,7 @@ fn part2(input: &In) -> Out {
             let mut b = boxes.get_mut(h as usize).unwrap();
             let mut found = false;
             b.iter_mut().for_each(|i| {
-                if i.0 == k {
+                if !found && i.0 == k {
                     i.1 = v;
                     found = true
                 }
