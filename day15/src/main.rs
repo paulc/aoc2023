@@ -53,10 +53,7 @@ fn operation(v: &Vec<u8>) -> Operation {
 }
 
 fn part1(input: &In) -> Out {
-    input
-        .iter()
-        .map(|s| s.iter().fold(0, |acc, &v| ((acc + v as usize) * 17) % 256))
-        .sum()
+    input.iter().map(|s| hash(s) as usize).sum()
 }
 
 fn part2(input: &In) -> Out {
