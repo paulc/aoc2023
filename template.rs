@@ -16,7 +16,10 @@ const PART1_RESULT: Out = 0;
 const PART2_RESULT: Out = 0;
 
 fn parse_input(input: &mut impl Read) -> In {
-    let data = BufReader::new(input).lines().collect::<Vec<_>>();
+    let data = BufReader::new(input)
+        .lines()
+        .map(|l| l.unwrap().bytes().collect::<Vec<_>>())
+        .collect::<Vec<_>>();
     ()
 }
 
