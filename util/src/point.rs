@@ -67,7 +67,7 @@ impl Display for Point {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct Offset {
     pub dx: i32,
     pub dy: i32,

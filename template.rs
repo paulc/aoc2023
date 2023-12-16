@@ -62,5 +62,5 @@ fn test_part2() {
 }
 
 #[cfg(test)]
-const TESTDATA: &str = "
+const TESTDATA: &str = r"
 ";

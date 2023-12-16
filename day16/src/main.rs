@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::fmt::Display;
 use std::fs::File;
 use std::io::prelude::*;
@@ -9,22 +10,94 @@ use std::io::BufReader;
 use std::io::Error;
 use std::io::ErrorKind::InvalidData;
 use std::time::Instant;
+use util::grid::Grid;
+use util::point::*;
 
-type In = ();
+type In = Grid<char>;
 type Out = usize;
-const PART1_RESULT: Out = 0;
-const PART2_RESULT: Out = 0;
+const PART1_RESULT: Out = 46;
+const PART2_RESULT: Out = 51;
 
 fn parse_input(input: &mut impl Read) -> std::io::Result<In> {
     let data = BufReader::new(input)
         .lines()
-        .map(|l| l.unwrap().bytes().collect::<Vec<_>>())
+        .map(|l| l.unwrap().chars().collect::<Vec<_>>())
         .collect::<Vec<_>>();
-    Ok(())
+    Ok(Grid::from(data))
+}
+
+fn push(
+    next: (Point, Offset),
+    visited: &HashSet<(Point, Offset)>,
+    q: &mut VecDeque<(Point, Offset)>,
+) {
+    if !visited.contains(&next) {
+        q.push_back(next)
+    }
+}
+
+fn reflect(d: Offset, mirror: char) -> Offset {
+    match (mirror, d) {
+        ('/', UP) => RIGHT,
+        ('/', DOWN) => LEFT,
+        ('/', RIGHT) => UP,
+        ('/', LEFT) => DOWN,
+        ('\\', UP) => LEFT,
+        ('\\', DOWN) => RIGHT,
+        ('\\', RIGHT) => DOWN,
+        ('\\', LEFT) => UP,
+        _ => panic!("Invalid"),
+    }
+}
+
+fn trace(input: &In) -> usize {
+    let mut q: VecDeque<(Point, Offset)> = VecDeque::new();
+    let mut visited: HashSet<(Point, Offset)> = HashSet::new();
+    q.push_back((Point::new(0, 0), RIGHT));
+    visited.insert((Point::new(0, 0), RIGHT));
+    while let Some((p, d)) = q.pop_front() {
+        match input.get(p) {
+            Some(c) => {
+                visited.insert((p, d).clone());
+                match c {
+                    '.' => push((p + d, d), &visited, &mut q),
+                    '/' => {
+                        let d = reflect(d, '/');
+                        push((p + d, d), &visited, &mut q)
+                    }
+                    '\\' => {
+                        let d = reflect(d, '\\');
+                        push((p + d, d), &visited, &mut q)
+                    }
+                    '-' => {
+                        if d == LEFT || d == RIGHT {
+                            push((p + d, d), &visited, &mut q);
+                        } else {
+                            for d in [LEFT, RIGHT] {
+                                push((p + d, d), &visited, &mut q);
+                            }
+                        }
+                    }
+                    '|' => {
+                        if d == UP || d == DOWN {
+                            push((p + d, d), &visited, &mut q);
+                        } else {
+                            for d in [UP, DOWN] {
+                                push((p + d, d), &visited, &mut q);
+                            }
+                        }
+                    }
+                    _ => panic!("Invalid tile"),
+                }
+            }
+            None => {} // Outside bounds
+        }
+    }
+    visited.iter().map(|(p, d)| p).collect::<HashSet<_>>().len()
 }
 
 fn part1(input: &In) -> Out {
-    PART1_RESULT
+    trace(input)
 }
 
 fn part2(input: &In) -> Out {
@@ -62,5 +135,15 @@ fn test_part2() {
 }
 
 #[cfg(test)]
-const TESTDATA: &str = "
+const TESTDATA: &str = r"
+.|...\....
+|.-.\.....
+.....|-...
+........|.
+..........
+.........\
+..../.\\..
+.-.-/..|..
+.|....-|.\
+..//.|....
 ";
