@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
@@ -101,16 +102,22 @@ fn part1(input: &In) -> Out {
 }
 
 fn part2(input: &In) -> Out {
-    let mut out: Vec<usize> = vec![];
-    for x in input.start.x..=input.end.x {
-        out.push(trace(input, (Point::new(x, 0), DOWN)));
-        out.push(trace(input, (Point::new(x, input.end.y), UP)));
-    }
-    for y in input.start.y..=input.end.y {
-        out.push(trace(input, (Point::new(0, y), RIGHT)));
-        out.push(trace(input, (Point::new(input.end.x, y), UP)));
-    }
-    *out.iter().max().unwrap()
+    (0..(input.end.x + 1))
+        .into_par_iter()
+        .flat_map(|x| {
+            [
+                trace(input, (Point::new(x, 0), DOWN)),
+                trace(input, (Point::new(x, input.end.y), UP)),
+            ]
+        })
+        .chain((0..(input.end.y + 1)).into_par_iter().flat_map(|y| {
+            [
+                trace(input, (Point::new(0, y), RIGHT)),
+                trace(input, (Point::new(input.end.x, y), UP)),
+            ]
+        }))
+        .max()
+        .unwrap()
 }
 
 fn main() -> std::io::Result<()> {
