@@ -50,11 +50,11 @@ fn reflect(d: Offset, mirror: char) -> Offset {
     }
 }
 
-fn trace(input: &In) -> usize {
+fn trace(input: &In, start: (Point, Offset)) -> usize {
     let mut q: VecDeque<(Point, Offset)> = VecDeque::new();
     let mut visited: HashSet<(Point, Offset)> = HashSet::new();
-    q.push_back((Point::new(0, 0), RIGHT));
-    visited.insert((Point::new(0, 0), RIGHT));
+    q.push_back(start.clone());
+    visited.insert(start.clone());
     while let Some((p, d)) = q.pop_front() {
         match input.get(p) {
             Some(c) => {
@@ -97,11 +97,20 @@ fn trace(input: &In) -> usize {
 }
 
 fn part1(input: &In) -> Out {
-    trace(input)
+    trace(input, (Point::new(0, 0), RIGHT))
 }
 
 fn part2(input: &In) -> Out {
-    PART2_RESULT
+    let mut out: Vec<usize> = vec![];
+    for x in input.start.x..=input.end.x {
+        out.push(trace(input, (Point::new(x, 0), DOWN)));
+        out.push(trace(input, (Point::new(x, input.end.y), UP)));
+    }
+    for y in input.start.y..=input.end.y {
+        out.push(trace(input, (Point::new(0, y), RIGHT)));
+        out.push(trace(input, (Point::new(input.end.x, y), UP)));
+    }
+    *out.iter().max().unwrap()
 }
 
 fn main() -> std::io::Result<()> {
