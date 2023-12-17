@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
@@ -26,43 +27,141 @@ fn parse_input(input: &mut impl Read) -> std::io::Result<In> {
     Ok(Grid::from(data))
 }
 
-fn dir(o: Offset) -> String {
-    match o {
-        LEFT => "LEFT",
-        RIGHT => "RIGHT",
-        UP => "UP",
-        DOWN => "DOWN",
-        _ => "?",
+fn available(prev: Offset, count: u32, min_straight: u32, max_straight: u32) -> Vec<Offset> {
+    if count < min_straight {
+        vec![prev]
+    } else if count == max_straight {
+        match prev {
+            UP | DOWN => vec![LEFT, RIGHT],
+            LEFT | RIGHT => vec![UP, DOWN],
+            _ => panic!("Invalid Direction"),
+        }
+    } else {
+        match prev {
+            UP => vec![UP, LEFT, RIGHT],
+            DOWN => vec![DOWN, LEFT, RIGHT],
+            RIGHT => vec![UP, DOWN, RIGHT],
+            LEFT => vec![UP, DOWN, LEFT],
+            _ => panic!("Invalid Direction"),
+        }
     }
-    .to_string()
 }
 
-fn search(g: &Grid<u8>, start: Point, target: Point) -> u32 {
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+struct State {
+    p: Point,
+    prev: Offset,
+    count: u32,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+struct StateCost {
+    state: State,
+    cost: u32,
+}
+
+impl Ord for StateCost {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        other.cost.cmp(&self.cost) // Compare the u32 field in reverse order
+    }
+}
+
+impl PartialOrd for StateCost {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn astar(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> Option<(u32, Vec<Point>)> {
+    let mut open: BinaryHeap<StateCost> = BinaryHeap::new();
+    let mut from: HashMap<State, State> = HashMap::new();
+    let mut score: HashMap<State, u32> = HashMap::new();
+    for d in [RIGHT, DOWN] {
+        let state = State {
+            p: g.start,
+            prev: d,
+            count: 0,
+        };
+        open.push(StateCost {
+            state: state.clone(),
+            cost: g.start.manhattan(&g.end),
+        });
+        score.insert(state.clone(), 0);
+    }
+
+    while let Some(current) = open.pop() {
+        if current.state.p == g.end {
+            continue;
+        }
+        for d in available(
+            current.state.prev,
+            current.state.count,
+            min_straight,
+            max_straight,
+        ) {
+            let p2 = current.state.p + d;
+            if g.check_bounds(p2) {
+                let next = State {
+                    p: p2,
+                    prev: d,
+                    count: if d != current.state.prev {
+                        1
+                    } else {
+                        current.state.count + 1
+                    },
+                };
+                let tentative = score[&current.state] + *g.get(next.p).unwrap() as u32;
+                if tentative < *score.get(&next).unwrap_or(&u32::MAX) {
+                    from.insert(next.clone(), current.state.clone());
+                    score.insert(next.clone(), tentative);
+                    open.push(StateCost {
+                        state: next,
+                        cost: tentative + current.state.p.manhattan(&g.end),
+                    });
+                }
+            }
+        }
+    }
+    let mut states = score
+        .iter()
+        .filter_map(|(s, v)| {
+            if s.p == g.end && s.count >= min_straight {
+                Some((s.clone(), v.clone()))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    if states.is_empty() {
+        None
+    } else {
+        states.sort_by_key(|&(_, v)| v);
+        let best = states.first().unwrap().clone();
+        let mut current = best.0.clone();
+        let mut path = vec![current.clone()];
+        while let Some(prev) = from.get(&current) {
+            path.push(prev.clone());
+            current = prev.clone();
+        }
+        Some((best.1, path.iter().map(|s| s.p).collect::<Vec<_>>()))
+    }
+}
+
+// BFS - much slower than astar
+fn search(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> u32 {
     let mut costs: Vec<usize> = Vec::new();
     let mut visited: HashMap<(Point, Offset, u32), u32> = HashMap::new();
     let mut q: VecDeque<(Point, Offset, u32, u32)> = VecDeque::new();
-    q.push_back((start.clone(), RIGHT, 0, 0));
-    visited.insert((start.clone(), RIGHT, 0), 0);
+    q.push_back((g.start.clone(), RIGHT, 0, 0));
+    q.push_back((g.start.clone(), DOWN, 0, 0));
+    visited.insert((g.start.clone(), RIGHT, 0), 0);
     while let Some((p, prev, count, loss)) = q.pop_front() {
-        let available = if count == 3 {
-            match prev {
-                UP | DOWN => vec![LEFT, RIGHT],
-                LEFT | RIGHT => vec![UP, DOWN],
-                _ => panic!("Invalid Direction"),
-            }
-        } else {
-            match prev {
-                UP => vec![UP, LEFT, RIGHT],
-                DOWN => vec![DOWN, LEFT, RIGHT],
-                RIGHT => vec![UP, DOWN, RIGHT],
-                LEFT => vec![UP, DOWN, LEFT],
-                _ => panic!("Invalid Direction"),
-            }
-        };
-        for d in available {
+        if p == g.end {
+            continue;
+        }
+        for d in available(prev, count, min_straight, max_straight) {
             let p2 = p + d;
             if g.check_bounds(p2) {
-                // println!("{} ({},{}) = {} ==> {}", p, dir(prev), count, loss, dir(d));
                 let (prev, count) = if d != prev { (d, 1) } else { (d, count + 1) };
                 let loss = loss + *g.get(p2).unwrap() as u32;
                 if let Some(min_loss) = visited.get_mut(&(p2, prev, count)) {
@@ -79,83 +178,26 @@ fn search(g: &Grid<u8>, start: Point, target: Point) -> u32 {
     }
     visited
         .iter()
-        .filter_map(|((p, _, _), v)| if *p == g.end { Some(v) } else { None })
+        .filter_map(|((p, _, c), v)| {
+            if *p == g.end && *c >= min_straight {
+                Some(v)
+            } else {
+                None
+            }
+        })
         .min()
         .unwrap()
         .clone()
 }
 
-fn search2(g: &Grid<u8>, start: Point, target: Point) -> u32 {
-    let mut costs: Vec<usize> = Vec::new();
-    let mut visited: HashMap<(Point, Offset, u32), u32> = HashMap::new();
-    let mut q: VecDeque<(Point, Offset, u32, u32)> = VecDeque::new();
-    q.push_back((start.clone(), RIGHT, 0, 0));
-    visited.insert((start.clone(), RIGHT, 0), 0);
-    while let Some((p, prev, count, loss)) = q.pop_front() {
-        let available = if count < 4 {
-            vec![prev]
-        } else if count == 10 {
-            match prev {
-                UP | DOWN => vec![LEFT, RIGHT],
-                LEFT | RIGHT => vec![UP, DOWN],
-                _ => panic!("Invalid Direction"),
-            }
-        } else {
-            match prev {
-                UP => vec![UP, LEFT, RIGHT],
-                DOWN => vec![DOWN, LEFT, RIGHT],
-                RIGHT => vec![UP, DOWN, RIGHT],
-                LEFT => vec![UP, DOWN, LEFT],
-                _ => panic!("Invalid Direction"),
-            }
-        };
-        /*
-        println!(
-            "{} ({},{}) = {} ==> {:?}",
-            p,
-            dir(prev),
-            count,
-            loss,
-            available.iter().map(|&d| dir(d)).collect::<Vec<_>>()
-        );
-        */
-        for d in available {
-            let p2 = p + d;
-            if g.check_bounds(p2) {
-                let (prev, count) = if d != prev { (d, 1) } else { (d, count + 1) };
-                let loss = loss + *g.get(p2).unwrap() as u32;
-                if let Some(min_loss) = visited.get_mut(&(p2, prev, count)) {
-                    if loss < *min_loss {
-                        *min_loss = loss;
-                        q.push_back((p2.clone(), prev, count, loss));
-                    }
-                } else {
-                    visited.insert((p2.clone(), prev, count), loss);
-                    q.push_back((p2.clone(), prev, count, loss));
-                }
-            }
-        }
-    }
-    let visited = visited
-        .iter()
-        .filter_map(|((p, _, c), v)| {
-            if *p == g.end && *c >= 4 {
-                Some(*v)
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
-    println!("{:?}", visited);
-    *visited.iter().min().unwrap()
-}
-
 fn part1(input: &In) -> Out {
-    search(input, input.start, input.end)
+    let (loss, path) = astar(input, 1, 3).unwrap();
+    loss
 }
 
 fn part2(input: &In) -> Out {
-    search2(input, input.start, input.end)
+    let (loss, path) = astar(input, 4, 10).unwrap();
+    loss
 }
 
 fn main() -> std::io::Result<()> {

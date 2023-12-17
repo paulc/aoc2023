@@ -23,8 +23,9 @@ impl Point {
     pub fn y_offset(&self, other: &Point) -> i32 {
         (self.y - other.y).abs()
     }
-    pub fn manhattan(&self, other: &Point) -> i32 {
-        (self.x - other.x).abs() + (self.y - other.y).abs()
+    pub fn manhattan(&self, other: &Point) -> u32 {
+        (self.x.max(other.x) - self.x.min(other.x) + self.y.max(other.y) - self.y.min(other.y))
+            as u32
     }
 }
 
@@ -102,6 +103,18 @@ impl Add for Offset {
         Offset {
             dx: dx + self.dx,
             dy: dy + self.dy,
+        }
+    }
+}
+
+impl Display for Offset {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            &LEFT => write!(f, "L"),
+            &RIGHT => write!(f, "R"),
+            &UP => write!(f, "U"),
+            &DOWN => write!(f, "D"),
+            _ => write!(f, "[{},{}]", self.dx, self.dy),
         }
     }
 }
