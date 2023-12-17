@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use rayon::prelude::*;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -100,16 +101,16 @@ fn check(springs: &[char], groups: &[usize], cache: &mut HashMap<(u64, u64), usi
     result
 }
 
-fn part1(input: &In, cache: &mut HashMap<(u64, u64), usize>) -> Out {
+fn part1(input: &In) -> Out {
     input
-        .iter()
-        .map(|s| check(s.0.as_slice(), s.1.as_slice(), cache))
+        .par_iter()
+        .map(|s| check(s.0.as_slice(), s.1.as_slice(), &mut HashMap::new()))
         .sum()
 }
 
-fn part2(input: &In, cache: &mut HashMap<(u64, u64), usize>) -> Out {
+fn part2(input: &In) -> Out {
     input
-        .iter()
+        .par_iter()
         .map(|(s, g)| {
             let s = s
                 .iter()
@@ -126,24 +127,23 @@ fn part2(input: &In, cache: &mut HashMap<(u64, u64), usize>) -> Out {
                 .collect::<Vec<_>>();
             (s, g)
         })
-        .map(|(s, g)| check(s.as_slice(), g.as_slice(), cache))
+        .map(|(s, g)| check(s.as_slice(), g.as_slice(), &mut HashMap::new()))
         .sum()
 }
 
 fn main() -> std::io::Result<()> {
     let mut f = File::open("input.txt")?;
     let input = parse_input(&mut f);
-    let mut cache: HashMap<(u64, u64), usize> = HashMap::new();
     let p1 = Instant::now();
     println!(
         "Part1: {:?} ({}s)",
-        part1(&input, &mut cache),
+        part1(&input),
         p1.elapsed().as_secs_f32()
     );
     let p2 = Instant::now();
     println!(
         "Part2: {:?} ({}s)",
-        part2(&input, &mut cache),
+        part2(&input),
         p2.elapsed().as_secs_f32()
     );
     Ok(())
@@ -152,15 +152,13 @@ fn main() -> std::io::Result<()> {
 #[test]
 fn test_part1() {
     let input = parse_input(&mut TESTDATA.trim_matches('\n').as_bytes());
-    let mut cache: HashMap<(u64, u64), usize> = HashMap::new();
-    assert_eq!(part1(&input, &mut cache), PART1_RESULT);
+    assert_eq!(part1(&input), PART1_RESULT);
 }
 
 #[test]
 fn test_part2() {
     let input = parse_input(&mut TESTDATA.trim_matches('\n').as_bytes());
-    let mut cache: HashMap<(u64, u64), usize> = HashMap::new();
-    assert_eq!(part2(&input, &mut cache), PART2_RESULT);
+    assert_eq!(part2(&input), PART2_RESULT);
 }
 
 #[cfg(test)]
