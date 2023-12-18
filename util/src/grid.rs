@@ -1,5 +1,6 @@
 use crate::point::{Offset, Point, ADJACENT};
 use std::cmp::{max, min};
+use std::collections::HashSet;
 use std::fmt::Display;
 
 #[derive(Debug, Clone)]
@@ -52,7 +53,7 @@ impl<T> Grid<T> {
             .collect()
     }
     pub fn index_to_point(&self, i: usize) -> Point {
-        self.start + Offset::new(i as i32 % self.size.dx, i as i32 / self.size.dx)
+        self.start + Offset::new(i as i64 % self.size.dx, i as i64 / self.size.dx)
     }
 }
 
@@ -75,11 +76,33 @@ where
     }
 }
 
+impl<T> Grid<T>
+where
+    T: PartialEq + Eq + Clone,
+{
+    pub fn fill(&mut self, start: Point, wall: T, fill: T) {
+        let mut q = vec![start];
+        let mut visited: HashSet<Point> = HashSet::new();
+        while let Some(p) = q.pop() {
+            self.set(p, fill.clone()).unwrap();
+            visited.insert(p);
+            for adj in self.adjacent(p) {
+                if !visited.contains(&adj) {
+                    let v = self.get(adj).unwrap();
+                    if !(v == &wall) {
+                        q.push(adj);
+                    }
+                }
+            }
+        }
+    }
+}
+
 impl<T> From<Vec<Vec<T>>> for Grid<T> {
     fn from(v: Vec<Vec<T>>) -> Self {
         assert!(v.len() > 0);
         let start = Point::new(0, 0);
-        let end = Point::new(v[0].len() as i32 - 1, v.len() as i32 - 1);
+        let end = Point::new(v[0].len() as i64 - 1, v.len() as i64 - 1);
         let size = (end - start) + Offset::new(1, 1);
         let mut data = Vec::with_capacity(((size.dx + 1) * (size.dy + 1)) as usize);
         for row in v {

@@ -76,6 +76,7 @@ fn astar(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> Option<(u32, Vec
     let mut open: BinaryHeap<StateCost> = BinaryHeap::new();
     let mut from: HashMap<State, State> = HashMap::new();
     let mut score: HashMap<State, u32> = HashMap::new();
+    // Initial valid directions are R/D (need to add both states)
     for d in [RIGHT, DOWN] {
         let state = State {
             p: g.start,
@@ -88,9 +89,9 @@ fn astar(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> Option<(u32, Vec
         });
         score.insert(state.clone(), 0);
     }
-
     while let Some(current) = open.pop() {
         if current.state.p == g.end {
+            // We cant break here as we might get a better state
             continue;
         }
         for d in available(
@@ -122,6 +123,7 @@ fn astar(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> Option<(u32, Vec
             }
         }
     }
+    // Filter valid states
     let mut states = score
         .iter()
         .filter_map(|(s, v)| {
@@ -135,8 +137,10 @@ fn astar(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> Option<(u32, Vec
     if states.is_empty() {
         None
     } else {
+        // Get best
         states.sort_by_key(|&(_, v)| v);
         let best = states.first().unwrap().clone();
+        // Trace path
         let mut current = best.0.clone();
         let mut path = vec![current.clone()];
         while let Some(prev) = from.get(&current) {
@@ -147,7 +151,7 @@ fn astar(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> Option<(u32, Vec
     }
 }
 
-// BFS - much slower than astar
+// Simple BFS - much slower than astar
 fn search(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> u32 {
     let mut costs: Vec<usize> = Vec::new();
     let mut visited: HashMap<(Point, Offset, u32), u32> = HashMap::new();

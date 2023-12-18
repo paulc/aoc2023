@@ -13,7 +13,7 @@ use util::grid::Grid;
 use util::point::*;
 
 type In = Grid<u8>;
-type Out = i32;
+type Out = i64;
 const PART1_RESULT: Out = 136;
 const PART2_RESULT: Out = 64;
 
@@ -72,7 +72,7 @@ fn part1(input: &In) -> Out {
         .find(&b'O')
         .iter()
         .map(|&p| tilted.size.dy - p.y)
-        .sum::<i32>()
+        .sum::<i64>()
 }
 
 fn part2(input: &In) -> Out {
@@ -100,7 +100,7 @@ fn part2(input: &In) -> Out {
         .find(&b'O')
         .iter()
         .map(|&p| tilted.size.dy - p.y)
-        .sum::<i32>()
+        .sum::<i64>()
 }
 
 fn main() -> std::io::Result<()> {

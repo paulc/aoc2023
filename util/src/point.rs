@@ -1,14 +1,14 @@
 use std::fmt::Display;
-use std::ops::{Add, Sub};
+use std::ops::{Add, Mul, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct Point {
-    pub x: i32,
-    pub y: i32,
+    pub x: i64,
+    pub y: i64,
 }
 
 impl Point {
-    pub fn new(x: i32, y: i32) -> Point {
+    pub fn new(x: i64, y: i64) -> Point {
         Point { x, y }
     }
     pub fn adjacent(&self) -> impl Iterator<Item = Point> + '_ {
@@ -17,10 +17,10 @@ impl Point {
 }
 
 impl Point {
-    pub fn x_offset(&self, other: &Point) -> i32 {
+    pub fn x_offset(&self, other: &Point) -> i64 {
         (self.x - other.x).abs()
     }
-    pub fn y_offset(&self, other: &Point) -> i32 {
+    pub fn y_offset(&self, other: &Point) -> i64 {
         (self.y - other.y).abs()
     }
     pub fn manhattan(&self, other: &Point) -> u32 {
@@ -53,11 +53,21 @@ impl TryFrom<&str> for Point {
     type Error = &'static str;
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         match s.split_once(',') {
-            Some((x, y)) => match (x.parse::<i32>(), y.parse::<i32>()) {
+            Some((x, y)) => match (x.parse::<i64>(), y.parse::<i64>()) {
                 (Ok(x), Ok(y)) => Ok(Point { x, y }),
                 _ => Err("Invalid input"),
             },
             _ => Err("Invalid input"),
+        }
+    }
+}
+
+impl Mul<i64> for Offset {
+    type Output = Offset;
+    fn mul(self, n: i64) -> Offset {
+        Offset {
+            dx: self.dx * n,
+            dy: self.dy * n,
         }
     }
 }
@@ -70,8 +80,8 @@ impl Display for Point {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct Offset {
-    pub dx: i32,
-    pub dy: i32,
+    pub dx: i64,
+    pub dy: i64,
 }
 
 pub const UP: Offset = Offset { dx: 0, dy: -1 };
@@ -82,7 +92,7 @@ pub const LEFT: Offset = Offset { dx: -1, dy: 0 };
 pub const ADJACENT: [Offset; 4] = [UP, RIGHT, DOWN, LEFT];
 
 impl Offset {
-    pub fn new(dx: i32, dy: i32) -> Offset {
+    pub fn new(dx: i64, dy: i64) -> Offset {
         Offset { dx, dy }
     }
 }
@@ -139,6 +149,10 @@ mod tests {
     #[test]
     fn test_yoffset() {
         assert_eq!(Point::new(0, 0).y_offset(&Point::new(-5, 7)), 7);
+    }
+    #[test]
+    fn test_offset_mul() {
+        assert_eq!(Offset::new(1, -1) * 5, Offset::new(5, -5));
     }
     #[test]
     fn test_manhattan() {
