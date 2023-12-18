@@ -74,6 +74,27 @@ where
             })
             .collect::<Vec<_>>()
     }
+    /*
+    pub fn inside(&self, p: &Point, walls: &Vec<T>) -> bool {
+        if !self.check_bounds(p) || walls.contains(self.get(p).unwrap()) {
+            return false;
+        }
+        let mut wall = false;
+        let mut n_walls = 0;
+        for x in p.x..=self.end.x {
+            let current = self.get(&Point::new(x, p.y)).unwrap();
+            if walls.contains(current) {
+                wall = true;
+            } else {
+                if wall {
+                    n_walls += 1;
+                    wall = false;
+                }
+            }
+        }
+        (n_walls % 2) == 1
+    }
+    */
 }
 
 impl<T> Grid<T>
@@ -285,10 +306,42 @@ mod tests {
             .unwrap();
         }
         assert_eq!(g.fill(&Point::new(2, 2), &vec!['#'], None).len(), 15);
+        println!("{}", g);
         let mut p1 = g.fill(&Point::new(2, 2), &vec!['#'], Some(&'~'));
         let mut p2 = g.find(&'~');
         p1.sort();
         p2.sort();
         assert_eq!(p1, p2);
+    }
+    #[test]
+    fn test_inside() {
+        let mut g = Grid::empty(&Point::new(0, 0), &Point::new(10, 10), '.');
+        for p in vec![
+            [1, 1],
+            [3, 1],
+            [3, 3],
+            [7, 3],
+            [7, 5],
+            [9, 5],
+            [9, 9],
+            [7, 9],
+            [7, 7],
+            [5, 7],
+            [5, 8],
+            [3, 8],
+            [3, 6],
+            [1, 6],
+            [1, 1],
+        ]
+        .windows(2)
+        {
+            g.draw_line(
+                &Point::new(p[0][0], p[0][1]),
+                &Point::new(p[1][0], p[1][1]),
+                '#',
+            )
+            .unwrap();
+        }
+        println!("{}", g);
     }
 }
