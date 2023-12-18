@@ -61,7 +61,7 @@ fn find_start(input: &In) -> (Point, Vec<Offset>) {
     let direction = ADJACENT
         .iter()
         .filter(|&o| {
-            if let Some(p) = input.get(start + *o) {
+            if let Some(p) = input.get(&(start + *o)) {
                 map_direction(*o, p).is_some()
             } else {
                 false
@@ -82,7 +82,7 @@ fn find_path(input: &In, start: Point, direction: Offset) -> Vec<Point> {
         if p == start {
             break;
         }
-        d = map_direction(d, input.get(p).unwrap()).unwrap();
+        d = map_direction(d, input.get(&p).unwrap()).unwrap();
     }
     out
 }
@@ -107,7 +107,7 @@ fn expand_grid(g: &mut Grid<char>, p: Point, c: char) {
         for dy in [-1, 0, 1] {
             let o = Offset::new(dx, dy);
             if expanded[(dy + 1) as usize][(dx + 1) as usize] == 1 {
-                g.set(p + o, '*').unwrap();
+                g.set(&(p + o), '*').unwrap();
             }
         }
     }
@@ -119,10 +119,10 @@ fn flood_fill(g: &mut Grid<char>) {
     while let Some(p) = available.pop() {
         if !visited.contains(&p) {
             visited.insert(p);
-            g.set(p, 'O').unwrap();
-            g.adjacent(p)
+            g.set(&p, 'O').unwrap();
+            g.adjacent(&p)
                 .iter()
-                .filter(|&p| g.get(*p).unwrap() == &'.')
+                .filter(|&p| g.get(p).unwrap() == &'.')
                 .for_each(|p| available.push(*p));
         }
     }
@@ -130,13 +130,13 @@ fn flood_fill(g: &mut Grid<char>) {
 
 fn part2_flood_fill(input: &In) -> Out {
     let (start, direction) = find_start(input);
-    let mut clean = Grid::empty(input.start, input.end, '.');
+    let mut clean = Grid::empty(&input.start, &input.end, '.');
     find_path(input, start, direction[0]).iter().for_each(|&p| {
-        clean.set(p, *input.get(p).unwrap()).unwrap();
+        clean.set(&p, *input.get(&p).unwrap()).unwrap();
     });
     let mut expanded = Grid::empty(
-        input.start,
-        Point::new(input.end.x * 3, input.end.y * 3),
+        &input.start,
+        &Point::new(input.end.x * 3, input.end.y * 3),
         '.',
     );
     for y in 0..input.size.dy {
@@ -144,7 +144,7 @@ fn part2_flood_fill(input: &In) -> Out {
             expand_grid(
                 &mut expanded,
                 Point::new(x * 3 + 1, y * 3 + 1),
-                *clean.get(Point::new(x, y)).unwrap(),
+                *clean.get(&Point::new(x, y)).unwrap(),
             );
         }
     }
@@ -152,7 +152,7 @@ fn part2_flood_fill(input: &In) -> Out {
     let mut count: usize = 0;
     for y in 0..input.size.dy {
         for x in 0..input.size.dx {
-            if *expanded.get(Point::new(x * 3 + 1, y * 3 + 1)).unwrap() == '.' {
+            if *expanded.get(&Point::new(x * 3 + 1, y * 3 + 1)).unwrap() == '.' {
                 count += 1;
             }
         }
@@ -163,13 +163,13 @@ fn part2_flood_fill(input: &In) -> Out {
 fn part2_trace(input: &In) -> Out {
     let (start, direction) = find_start(input);
 
-    let mut clean = Grid::empty(input.start, input.end, '.');
+    let mut clean = Grid::empty(&input.start, &input.end, '.');
     find_path(input, start, direction[0]).iter().for_each(|&p| {
-        clean.set(p, *input.get(p).unwrap()).unwrap();
+        clean.set(&p, *input.get(&p).unwrap()).unwrap();
     });
     // Get correct start character
     clean.set(
-        start,
+        &start,
         match (direction[0], direction[1]) {
             (UP, RIGHT) | (RIGHT, UP) => 'L',
             (UP, LEFT) | (LEFT, UP) => 'J',
@@ -185,7 +185,7 @@ fn part2_trace(input: &In) -> Out {
         let mut inside = false;
         let mut prev: Option<char> = None;
         for x in 0..input.size.dx {
-            match (prev, clean.get(Point::new(x, y))) {
+            match (prev, clean.get(&Point::new(x, y))) {
                 (_, Some('|')) => inside = !inside,
                 (None, Some('F')) => prev = Some('F'),
                 // ┏┅┅┓ = same side

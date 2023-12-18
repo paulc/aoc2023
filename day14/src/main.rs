@@ -41,9 +41,9 @@ fn tilt(input: &Grid<u8>, d: Offset) -> Grid<u8> {
     rocks.iter().for_each(|&p| {
         let mut p1 = p;
         let mut p2 = p + d;
-        while tilted.check_bounds(p2) && tilted.get(p2).unwrap() == &b'.' {
-            tilted.set(p1, b'.');
-            tilted.set(p2, b'O');
+        while tilted.check_bounds(&p2) && tilted.get(&p2).unwrap() == &b'.' {
+            tilted.set(&p1, b'.');
+            tilted.set(&p2, b'O');
             p1 = p2;
             p2 = p2 + d;
         }

@@ -57,7 +57,7 @@ fn trace(input: &In, start: (Point, Offset)) -> usize {
     q.push_back(start.clone());
     visited.insert(start.clone());
     while let Some((p, d)) = q.pop_front() {
-        match input.get(p) {
+        match input.get(&p) {
             Some(c) => {
                 visited.insert((p, d).clone());
                 match c {

@@ -41,7 +41,7 @@ fn parse_input(input: &mut impl Read) -> std::io::Result<In> {
 }
 
 // bruteforce fill for part 1
-fn area(points: Vec<Point>) -> usize {
+fn area(points: &Vec<Point>) -> usize {
     let start = Point::new(
         points.iter().map(|p| p.x).min().unwrap(),
         points.iter().map(|p| p.y).min().unwrap(),
@@ -50,12 +50,12 @@ fn area(points: Vec<Point>) -> usize {
         points.iter().map(|p| p.x).max().unwrap(),
         points.iter().map(|p| p.y).max().unwrap(),
     ) + Offset::new(1, 1);
-    let mut g = Grid::empty(start, end, '.');
+    let mut g = Grid::empty(&start, &end, '.');
     points
         .windows(2)
-        .for_each(|p| g.draw_line(p[0], p[1], '#').unwrap());
+        .for_each(|p| g.draw_line(&p[0], &p[1], '#').unwrap());
     // Fill outside
-    g.fill(g.start, '#', 'o');
+    g.fill(&g.start.clone(), &vec!['#'], Some(&'o'));
     g.find(&'.').len() + g.find(&'#').len()
 }
 

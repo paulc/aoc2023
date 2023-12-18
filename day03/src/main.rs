@@ -33,7 +33,7 @@ fn find_parts(input: &In) -> Vec<(u32, Vec<Point>)> {
         let mut in_number = false;
         for x in 0..input.size.dx {
             let p = Point::new(x, y);
-            let c = input.get(p).unwrap();
+            let c = input.get(&p).unwrap();
             match c {
                 '0'..='9' => {
                     if !in_number {
@@ -43,7 +43,7 @@ fn find_parts(input: &In) -> Vec<(u32, Vec<Point>)> {
                     points.push(p);
                     'adjacent: for dx in [-1, 0, 1] {
                         for dy in [-1, 0, 1] {
-                            if let Some(c) = input.get(p + Offset::new(dx, dy)) {
+                            if let Some(c) = input.get(&(p + Offset::new(dx, dy))) {
                                 match c {
                                     '0'..='9' | '.' => {}
                                     _ => {
@@ -79,7 +79,7 @@ fn find_gears(input: &In) -> Vec<Point> {
     for y in 0..input.size.dy {
         for x in 0..input.size.dx {
             let p = Point::new(x, y);
-            if input.get(p).unwrap() == &'*' {
+            if input.get(&p).unwrap() == &'*' {
                 gears.push(p);
             }
         }

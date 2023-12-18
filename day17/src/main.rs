@@ -101,7 +101,7 @@ fn astar(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> Option<(u32, Vec
             max_straight,
         ) {
             let p2 = current.state.p + d;
-            if g.check_bounds(p2) {
+            if g.check_bounds(&p2) {
                 let next = State {
                     p: p2,
                     prev: d,
@@ -111,7 +111,7 @@ fn astar(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> Option<(u32, Vec
                         current.state.count + 1
                     },
                 };
-                let tentative = score[&current.state] + *g.get(next.p).unwrap() as u32;
+                let tentative = score[&current.state] + *g.get(&next.p).unwrap() as u32;
                 if tentative < *score.get(&next).unwrap_or(&u32::MAX) {
                     from.insert(next.clone(), current.state.clone());
                     score.insert(next.clone(), tentative);
@@ -165,9 +165,9 @@ fn search(g: &Grid<u8>, min_straight: u32, max_straight: u32) -> u32 {
         }
         for d in available(prev, count, min_straight, max_straight) {
             let p2 = p + d;
-            if g.check_bounds(p2) {
+            if g.check_bounds(&p2) {
                 let (prev, count) = if d != prev { (d, 1) } else { (d, count + 1) };
-                let loss = loss + *g.get(p2).unwrap() as u32;
+                let loss = loss + *g.get(&p2).unwrap() as u32;
                 if let Some(min_loss) = visited.get_mut(&(p2, prev, count)) {
                     if loss < *min_loss {
                         *min_loss = loss;
