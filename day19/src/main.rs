@@ -8,12 +8,13 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::Error;
 use std::io::ErrorKind::InvalidData;
+use std::ops::Range;
 use std::time::Instant;
 
 type In = (Vec<Part>, HashMap<String, Vec<Opcode>>);
-type Out = i32;
+type Out = usize;
 const PART1_RESULT: Out = 19114;
-const PART2_RESULT: Out = 0;
+const PART2_RESULT: Out = 167409079868000;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Part {
@@ -215,12 +216,124 @@ fn run(p: &Part, w: &HashMap<String, Vec<Opcode>>) -> bool {
     false
 }
 
+#[derive(Debug, Clone)]
+struct Partition {
+    x: Range<i32>,
+    m: Range<i32>,
+    a: Range<i32>,
+    s: Range<i32>,
+}
+
+impl Partition {
+    fn count(&self) -> usize {
+        self.x.len() * self.m.len() * self.a.len() * self.s.len()
+    }
+    fn splitx(&self, n: i32) -> (Partition, Partition) {
+        let mut p1 = self.clone();
+        let mut p2 = self.clone();
+        p1.x = self.x.start..n;
+        p2.x = n..self.x.end;
+        (p1, p2)
+    }
+    fn splitm(&self, n: i32) -> (Partition, Partition) {
+        let mut p1 = self.clone();
+        let mut p2 = self.clone();
+        p1.m = self.m.start..n;
+        p2.m = n..self.m.end;
+        (p1, p2)
+    }
+    fn splita(&self, n: i32) -> (Partition, Partition) {
+        let mut p1 = self.clone();
+        let mut p2 = self.clone();
+        p1.a = self.a.start..n;
+        p2.a = n..self.a.end;
+        (p1, p2)
+    }
+    fn splits(&self, n: i32) -> (Partition, Partition) {
+        let mut p1 = self.clone();
+        let mut p2 = self.clone();
+        p1.s = self.s.start..n;
+        p2.s = n..self.s.end;
+        (p1, p2)
+    }
+}
+
+fn split(input: &Partition, opcodes: &Vec<Opcode>) -> Vec<(Dest, Partition)> {
+    let mut out: Vec<(Dest, Partition)> = Vec::new();
+    let mut p: Partition = input.clone();
+    for op in opcodes {
+        match op {
+            Opcode::JX(Test::Less(n), dest) => {
+                if p.x.contains(&n) {
+                    let (p1, p2) = p.splitx(*n);
+                    out.push((dest.clone(), p1));
+                    p = p2;
+                }
+            }
+            Opcode::JX(Test::Greater(n), dest) => {
+                if p.x.contains(&n) {
+                    let (p1, p2) = p.splitx(*n);
+                    out.push((dest.clone(), p2));
+                    p = p1;
+                }
+            }
+            Opcode::JM(Test::Less(n), dest) => {
+                if p.m.contains(&n) {
+                    let (p1, p2) = p.splitm(*n);
+                    out.push((dest.clone(), p1));
+                    p = p2;
+                }
+            }
+            Opcode::JM(Test::Greater(n), dest) => {
+                if p.m.contains(&n) {
+                    let (p1, p2) = p.splitm(*n);
+                    out.push((dest.clone(), p2));
+                    p = p1;
+                }
+            }
+            Opcode::JA(Test::Less(n), dest) => {
+                if p.a.contains(&n) {
+                    let (p1, p2) = p.splita(*n);
+                    out.push((dest.clone(), p1));
+                    p = p2;
+                }
+            }
+            Opcode::JA(Test::Greater(n), dest) => {
+                if p.a.contains(&n) {
+                    let (p1, p2) = p.splita(*n);
+                    out.push((dest.clone(), p2));
+                    p = p1;
+                }
+            }
+            Opcode::JS(Test::Less(n), dest) => {
+                if p.s.contains(&n) {
+                    let (p1, p2) = p.splits(*n);
+                    out.push((dest.clone(), p1));
+                    p = p2;
+                }
+            }
+            Opcode::JS(Test::Greater(n), dest) => {
+                if p.s.contains(&n) {
+                    let (p1, p2) = p.splits(*n);
+                    out.push((dest.clone(), p2));
+                    p = p1;
+                }
+            }
+            Opcode::J(dest) => {
+                out.push((dest.clone(), p.clone()));
+                break;
+            }
+        }
+    }
+    out
+}
+
 fn part1((parts, workflow): &In) -> Out {
     parts
         .iter()
         .filter_map(|p| {
             if run(p, workflow) {
-                Some(p.x + p.m + p.a + p.s)
+                Some((p.x + p.m + p.a + p.s) as usize)
             } else {
                 None
             }
@@ -228,8 +341,37 @@ fn part1((parts, workflow): &In) -> Out {
         .sum()
 }
 
-fn part2(input: &In) -> Out {
-    PART2_RESULT
+fn part2((_, workflow): &In) -> Out {
+    let start = Partition {
+        x: 1..4001,
+        m: 1..4001,
+        a: 1..4001,
+        s: 1..4001,
+    };
+    let mut parts = vec![(Dest::Rule("in".to_string()), start)];
+    while parts.iter().any(|(d, _)| match d {
+        Dest::Rule(_) => true,
+        _ => false,
+    }) {
+        let mut next: Vec<(Dest, Partition)> = vec![];
+        for (d, p) in &parts {
+            match d {
+                Dest::Accept | Dest::Reject => next.push((d.clone(), p.clone())),
+                Dest::Rule(r) => split(p, workflow.get(r).unwrap())
+                    .into_iter()
+                    .for_each(|s| next.push(s)),
+            }
+        }
+        parts = next;
+    }
+    parts
+        .iter()
+        .filter(|&(d, _)| match d {
+            Dest::Accept => true,
+            _ => false,
+        })
+        .map(|(_, p)| p.count())
+        .sum()
 }
 
 fn main() -> std::io::Result<()> {
