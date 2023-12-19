@@ -275,7 +275,7 @@ fn split(input: &Partition, opcodes: &Vec<Opcode>) -> Vec<(Dest, Partition)> {
                 }
             }
             Opcode::JX(Test::Greater(n), dest) => {
-                let n = n + 1;
+                let n = n + 1; // For > we split at n+1
                 if p.x.contains(&n) {
                     let (p1, p2) = p.splitx(n);
                     out.push((dest.clone(), p2));
@@ -290,7 +290,7 @@ fn split(input: &Partition, opcodes: &Vec<Opcode>) -> Vec<(Dest, Partition)> {
                 }
             }
             Opcode::JM(Test::Greater(n), dest) => {
-                let n = n + 1;
+                let n = n + 1; // For > we split at n+1
                 if p.m.contains(&n) {
                     let (p1, p2) = p.splitm(n);
                     out.push((dest.clone(), p2));
@@ -305,7 +305,7 @@ fn split(input: &Partition, opcodes: &Vec<Opcode>) -> Vec<(Dest, Partition)> {
                 }
             }
             Opcode::JA(Test::Greater(n), dest) => {
-                let n = n + 1;
+                let n = n + 1; // For > we split at n+1
                 if p.a.contains(&n) {
                     let (p1, p2) = p.splita(n);
                     out.push((dest.clone(), p2));
@@ -320,7 +320,7 @@ fn split(input: &Partition, opcodes: &Vec<Opcode>) -> Vec<(Dest, Partition)> {
                 }
             }
             Opcode::JS(Test::Greater(n), dest) => {
-                let n = n + 1;
+                let n = n + 1; // For > we split at n+1
                 if p.s.contains(&n) {
                     let (p1, p2) = p.splits(n);
                     out.push((dest.clone(), p2));
