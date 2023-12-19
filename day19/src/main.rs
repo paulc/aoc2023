@@ -229,6 +229,7 @@ impl Partition {
         self.x.len() * self.m.len() * self.a.len() * self.s.len()
     }
     fn splitx(&self, n: i32) -> (Partition, Partition) {
+        assert!(self.x.contains(&n));
         let mut p1 = self.clone();
         let mut p2 = self.clone();
         p1.x = self.x.start..n;
@@ -236,6 +237,7 @@ impl Partition {
         (p1, p2)
     }
     fn splitm(&self, n: i32) -> (Partition, Partition) {
+        assert!(self.m.contains(&n));
         let mut p1 = self.clone();
         let mut p2 = self.clone();
         p1.m = self.m.start..n;
@@ -243,6 +245,7 @@ impl Partition {
         (p1, p2)
     }
     fn splita(&self, n: i32) -> (Partition, Partition) {
+        assert!(self.a.contains(&n));
         let mut p1 = self.clone();
         let mut p2 = self.clone();
         p1.a = self.a.start..n;
@@ -250,6 +253,7 @@ impl Partition {
         (p1, p2)
     }
     fn splits(&self, n: i32) -> (Partition, Partition) {
+        assert!(self.s.contains(&n));
         let mut p1 = self.clone();
         let mut p2 = self.clone();
         p1.s = self.s.start..n;
@@ -264,57 +268,61 @@ fn split(input: &Partition, opcodes: &Vec<Opcode>) -> Vec<(Dest, Partition)> {
     for op in opcodes {
         match op {
             Opcode::JX(Test::Less(n), dest) => {
-                if p.x.contains(&n) {
+                if p.x.contains(n) {
                     let (p1, p2) = p.splitx(*n);
                     out.push((dest.clone(), p1));
                     p = p2;
                 }
             }
             Opcode::JX(Test::Greater(n), dest) => {
+                let n = n + 1;
                 if p.x.contains(&n) {
-                    let (p1, p2) = p.splitx(*n);
+                    let (p1, p2) = p.splitx(n);
                     out.push((dest.clone(), p2));
                     p = p1;
                 }
             }
             Opcode::JM(Test::Less(n), dest) => {
-                if p.m.contains(&n) {
+                if p.m.contains(n) {
                     let (p1, p2) = p.splitm(*n);
                     out.push((dest.clone(), p1));
                     p = p2;
                 }
             }
             Opcode::JM(Test::Greater(n), dest) => {
+                let n = n + 1;
                 if p.m.contains(&n) {
-                    let (p1, p2) = p.splitm(*n);
+                    let (p1, p2) = p.splitm(n);
                     out.push((dest.clone(), p2));
                     p = p1;
                 }
             }
             Opcode::JA(Test::Less(n), dest) => {
-                if p.a.contains(&n) {
+                if p.a.contains(n) {
                     let (p1, p2) = p.splita(*n);
                     out.push((dest.clone(), p1));
                     p = p2;
                 }
             }
             Opcode::JA(Test::Greater(n), dest) => {
+                let n = n + 1;
                 if p.a.contains(&n) {
-                    let (p1, p2) = p.splita(*n);
+                    let (p1, p2) = p.splita(n);
                     out.push((dest.clone(), p2));
                     p = p1;
                 }
             }
             Opcode::JS(Test::Less(n), dest) => {
-                if p.s.contains(&n) {
+                if p.s.contains(n) {
                     let (p1, p2) = p.splits(*n);
                     out.push((dest.clone(), p1));
                     p = p2;
                 }
             }
             Opcode::JS(Test::Greater(n), dest) => {
+                let n = n + 1;
                 if p.s.contains(&n) {
-                    let (p1, p2) = p.splits(*n);
+                    let (p1, p2) = p.splits(n);
                     out.push((dest.clone(), p2));
                     p = p1;
                 }
@@ -423,4 +431,10 @@ hdj{m>838:A,pv}
 {x=2036,m=264,a=79,s=2244}
 {x=2461,m=1339,a=466,s=291}
 {x=2127,m=1623,a=2188,s=1013}
+";
+
+const TESTDATA2: &str = r"
+in{x>3:R,x<2:R,A}
+
+{x=1,m=1,a=1,s=1}
 ";
