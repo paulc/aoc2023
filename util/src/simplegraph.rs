@@ -8,6 +8,12 @@ use std::hash::Hash;
 #[derive(Debug, PartialEq, Eq)]
 pub struct Edge<V: Eq>(V, u32);
 
+impl<V: Eq> Edge<V> {
+    pub fn key(&self) -> &V {
+        &self.0
+    }
+}
+
 // Sort edges in reverse cost order
 impl<V: Eq> Ord for Edge<V> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
@@ -32,6 +38,9 @@ where
 {
     pub fn new() -> Self {
         Self(HashMap::new())
+    }
+    pub fn edges(&self, v: &V) -> Option<&Vec<Edge<V>>> {
+        self.0.get(v)
     }
     pub fn add_vertex(&mut self, vertex: V, edges: Vec<Edge<V>>) {
         self.0.entry(vertex).or_insert_with(|| edges);
