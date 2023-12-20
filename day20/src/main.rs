@@ -89,7 +89,6 @@ fn push_button(
         Pulse::LOW,                // Pulse
     )]);
     while let Some((from, to, pulse)) = q.pop_front() {
-        // println!("  >> {} -{:?}-> {}", from, pulse, to);
         let edge_iter = graph.edges(&to).unwrap().iter().map(|v| v.key());
         if to == "broadcaster" {
             edge_iter.for_each(|next| {
@@ -139,8 +138,27 @@ fn push_button(
             }
         }
     }
-    // println!("high={} low={} state={:?}", high, low, state);
     (high, low, state)
+}
+
+fn draw_graph(graph: &Graph<String>, state: &HashMap<String, Node>) {
+    println!("digraph g {{");
+    for (vertex, edges) in graph.iter() {
+        let shape = match vertex.as_str() {
+            "broadcast" => "doublecircle",
+            "rx" => "star",
+            _ => match state.get(vertex) {
+                Some(Node::FlipFlop(_)) => "rectangle",
+                Some(Node::Conjunction(_)) => "diamond",
+                None => "circle",
+            },
+        };
+        println!("{} [shape={}];", vertex, shape);
+        for e in edges {
+            println!("{} -> {};", vertex, e.key());
+        }
+    }
+    println!("}}");
 }
 
 fn part1((graph, state): &In) -> Out {
@@ -157,8 +175,23 @@ fn part1((graph, state): &In) -> Out {
     high * low
 }
 
-fn part2(input: &In) -> Out {
-    PART2_RESULT
+fn part2((graph, state): &In) -> Out {
+    // draw_graph(graph, state);
+    let mut state = state.clone();
+    let mut count: usize = 0;
+    loop {
+        count += 1;
+        (_, _, state) = push_button(graph, &state);
+        if let Some(Node::Conjunction(v)) = state.get("kz") {
+            //if count % 1000 == 0 {
+            //    println!("{}: {:?}", count, v);
+            //}
+            if v.iter().any(|(_, p)| p == &Pulse::HIGH) {
+                println!("{} --> {:?}", count, v);
+            }
+        }
+    }
+    0
 }
 
 fn main() -> std::io::Result<()> {
@@ -185,12 +218,6 @@ fn test_part1() {
     assert_eq!(part1(&input1), PART1_RESULT1);
     let input2 = parse_input(&mut TESTDATA2.trim_matches('\n').as_bytes()).unwrap();
     assert_eq!(part1(&input2), PART1_RESULT2);
-}
-
-#[test]
-fn test_part2() {
-    let input = parse_input(&mut TESTDATA1.trim_matches('\n').as_bytes()).unwrap();
-    assert_eq!(part2(&input), PART2_RESULT);
 }
 
 #[cfg(test)]

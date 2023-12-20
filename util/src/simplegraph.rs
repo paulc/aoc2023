@@ -30,11 +30,11 @@ impl<V: Eq> PartialOrd for Edge<V> {
 #[derive(Debug, PartialEq)]
 pub struct Graph<V>(HashMap<V, Vec<Edge<V>>>)
 where
-    V: Display + Clone + Eq + Hash;
+    V: Clone + Eq + Hash;
 
 impl<V> Graph<V>
 where
-    V: Display + Clone + Eq + Hash,
+    V: Clone + Eq + Hash,
 {
     pub fn new() -> Self {
         Self(HashMap::new())
@@ -56,6 +56,9 @@ where
     }
     pub fn vertices(&self) -> impl Iterator<Item = &V> {
         self.0.keys()
+    }
+    pub fn iter(&self) -> impl Iterator<Item = (&V, &Vec<Edge<V>>)> {
+        self.0.iter()
     }
     pub fn new_from_edges(edges: Vec<(V, V, u32)>) -> Self {
         let mut out = Self::new();
@@ -142,6 +145,21 @@ where
             }
         }
         cost
+    }
+}
+
+impl<V> Graph<V>
+where
+    V: Display + Clone + Eq + Hash,
+{
+    pub fn to_dot(&self) {
+        println!("digraph g {{");
+        for (vertex, edge) in &self.0 {
+            for e in edge {
+                println!("{} -> {};", vertex, e.key());
+            }
+        }
+        println!("}}");
     }
 }
 
