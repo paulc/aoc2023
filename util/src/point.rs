@@ -119,13 +119,7 @@ impl Add for Offset {
 
 impl Display for Offset {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            &LEFT => write!(f, "L"),
-            &RIGHT => write!(f, "R"),
-            &UP => write!(f, "U"),
-            &DOWN => write!(f, "D"),
-            _ => write!(f, "[{},{}]", self.dx, self.dy),
-        }
+        write!(f, "[{},{}]", self.dx, self.dy)
     }
 }
 

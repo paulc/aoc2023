@@ -34,7 +34,7 @@ fn parse_input(input: &mut impl Read) -> std::io::Result<In> {
 
 fn step(map: &Grid<char>, start: &Vec<Point>) -> Vec<Point> {
     let mut q = start.clone();
-    let mut visited: HashSet<Point> = HashSet::new(); // HashSet::from_iter(q.iter().cloned());
+    let mut visited: HashSet<Point> = HashSet::new();
     while let Some(p) = q.pop() {
         map.adjacent(&p)
             .iter()
@@ -48,10 +48,40 @@ fn step(map: &Grid<char>, start: &Vec<Point>) -> Vec<Point> {
     visited.into_iter().collect::<Vec<_>>()
 }
 
+fn step_set(rocks: &HashSet<Offset>, size: &Offset, start: &Vec<Point>) -> Vec<Point> {
+    let mut q = start.clone();
+    let mut visited: HashSet<Point> = HashSet::new();
+    while let Some(p) = q.pop() {
+        ADJACENT.iter().for_each(|o| {
+            let p2 = p + *o;
+            if !rocks.contains(&translate(&p2, size)) {
+                if !visited.contains(&p2) {
+                    visited.insert(p2.clone());
+                }
+            }
+        });
+    }
+    visited.into_iter().collect::<Vec<_>>()
+}
+
 fn print_steps(map: &Grid<char>, steps: &Vec<Point>) {
     let mut g = map.clone();
     steps.iter().for_each(|p| g.set(p, 'O').unwrap());
     println!("{}", g);
+}
+
+fn translate(p: &Point, size: &Offset) -> Offset {
+    Offset::new(
+        (p.x + size.dx / 2).rem_euclid(size.dx) - (size.dx / 2), // rem_euclid == modulus
+        (p.y + size.dy / 2).rem_euclid(size.dy) - (size.dy / 2),
+    )
+}
+
+fn find_rocks(map: &Grid<char>, start: &Point) -> HashSet<Offset> {
+    map.find(&'#')
+        .iter()
+        .map(|p| *p - *start) // Set start to (0,0)
+        .collect::<HashSet<_>>()
 }
 
 fn part1((map, start): &In, count: usize) -> Out {
@@ -62,7 +92,13 @@ fn part1((map, start): &In, count: usize) -> Out {
     start.len()
 }
 
-fn part2(input: &In) -> Out {
+fn part2((map, start): &In) -> Out {
+    let rocks = find_rocks(map, start);
+    let mut start = vec![Point::new(0, 0)];
+    for i in 0..500 {
+        start = step_set(&rocks, &map.size, &start);
+        println!("{},{}", i + 1, start.len());
+    }
     PART2_RESULT
 }
 
