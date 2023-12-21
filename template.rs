@@ -10,6 +10,9 @@ use std::io::Error;
 use std::io::ErrorKind::InvalidData;
 use std::time::Instant;
 
+#[derive(Debug, Clone)]
+struct T();
+
 type In = ();
 type Out = usize;
 const PART1_RESULT: Out = 0;

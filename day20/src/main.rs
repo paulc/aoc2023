@@ -182,11 +182,17 @@ fn part2((graph, state): &In) -> Out {
     loop {
         count += 1;
         (_, _, state) = push_button(graph, &state);
-        if let Some(Node::Conjunction(v)) = state.get("kz") {
+        /*
+        println!("Cycle: {}", count);
+        for (k, v) in &state {
+            println!("{} : {:?}", k, v);
+        }
+        */
+        if let Some(Node::Conjunction(v)) = state.get("lq") {
             //if count % 1000 == 0 {
             //    println!("{}: {:?}", count, v);
             //}
-            if v.iter().any(|(_, p)| p == &Pulse::HIGH) {
+            if v.iter().all(|(_, p)| p == &Pulse::HIGH) {
                 println!("{} --> {:?}", count, v);
             }
         }
