@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use num::integer::lcm;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
@@ -79,8 +80,16 @@ fn parse_input(input: &mut impl Read) -> std::io::Result<In> {
 fn push_button(
     graph: &Graph<String>,
     state: &HashMap<String, Node>,
-) -> (usize, usize, HashMap<String, Node>) {
+    track: &Vec<String>, // Track HIGH pulses to nodes on list
+                         // (used to detect inter-cycle state changes)
+) -> (
+    usize,                 // High pulses
+    usize,                 // Low pulses
+    HashMap<String, Node>, // New state
+    Vec<(String, String)>, // HIGH pulses to tracked nodes (from,to)
+) {
     let mut state = state.clone();
+    let mut tracked: Vec<(String, String)> = Vec::new();
     let mut high: usize = 0;
     let mut low: usize = 1; // Initial LOW from button
     let mut q = VecDeque::from(vec![(
@@ -95,7 +104,12 @@ fn push_button(
                 q.push_back((to.clone(), next.clone(), pulse));
                 match pulse {
                     Pulse::LOW => low += 1,
-                    Pulse::HIGH => high += 1,
+                    Pulse::HIGH => {
+                        if track.contains(next) {
+                            tracked.push((to.clone(), next.clone()));
+                        }
+                        high += 1
+                    }
                 }
             });
         } else {
@@ -107,6 +121,9 @@ fn push_button(
                                 *s = State::ON;
                                 edge_iter.for_each(|next| {
                                     q.push_back((to.clone(), next.clone(), Pulse::HIGH));
+                                    if track.contains(next) {
+                                        tracked.push((to.clone(), next.clone()));
+                                    }
                                     high += 1;
                                 });
                             }
@@ -130,6 +147,9 @@ fn push_button(
                     } else {
                         edge_iter.for_each(|next| {
                             q.push_back((to.clone(), next.clone(), Pulse::HIGH));
+                            if track.contains(next) {
+                                tracked.push((to.clone(), next.clone()));
+                            }
                             high += 1;
                         });
                     }
@@ -138,7 +158,7 @@ fn push_button(
             }
         }
     }
-    (high, low, state)
+    (high, low, state, tracked)
 }
 
 fn draw_graph(graph: &Graph<String>, state: &HashMap<String, Node>) {
@@ -168,7 +188,7 @@ fn part1((graph, state): &In) -> Out {
     let mut l: usize = 0;
     let mut state = state.clone();
     for _ in (0..1000) {
-        (h, l, state) = push_button(graph, &state);
+        (h, l, state, _) = push_button(graph, &state, &vec![]);
         high += h;
         low += l;
     }
@@ -176,28 +196,28 @@ fn part1((graph, state): &In) -> Out {
 }
 
 fn part2((graph, state): &In) -> Out {
-    // draw_graph(graph, state);
     let mut state = state.clone();
     let mut count: usize = 0;
+    let track = vec!["kz".to_string()];
+    let pred = ["bg", "qq", "ls", "sj"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<_>>();
+    let mut tracked: Vec<(String, String)> = vec![];
+    let mut cycle: HashMap<String, usize> = HashMap::new();
     loop {
         count += 1;
-        (_, _, state) = push_button(graph, &state);
-        /*
-        println!("Cycle: {}", count);
-        for (k, v) in &state {
-            println!("{} : {:?}", k, v);
+        (_, _, state, tracked) = push_button(graph, &state, &track);
+        if tracked.len() > 0 {}
+        for (f, t) in &tracked {
+            // println!("{} : {} -> {}", count, f, t);
+            cycle.insert(f.clone(), count);
         }
-        */
-        if let Some(Node::Conjunction(v)) = state.get("lq") {
-            //if count % 1000 == 0 {
-            //    println!("{}: {:?}", count, v);
-            //}
-            if v.iter().all(|(_, p)| p == &Pulse::HIGH) {
-                println!("{} --> {:?}", count, v);
-            }
+        if pred.iter().all(|k| cycle.contains_key(k)) {
+            break;
         }
     }
-    0
+    cycle.iter().fold(1_usize, |acc, (_, v)| lcm(acc, *v))
 }
 
 fn main() -> std::io::Result<()> {
