@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use rayon::prelude::*;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -12,9 +13,9 @@ use std::io::ErrorKind::InvalidData;
 use std::time::Instant;
 
 type In = Vec<Brick>;
-type Out = i32;
+type Out = usize;
 const PART1_RESULT: Out = 5;
-const PART2_RESULT: Out = 0;
+const PART2_RESULT: Out = 7;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct P3 {
@@ -123,11 +124,11 @@ fn drop(brick: &Brick, occupied: &HashSet<P3>) -> Option<(Brick, HashSet<P3>)> {
 }
 
 fn part1(input: &In) -> Out {
+    // Drop blocks in height order
+    let mut moved: Vec<Brick> = vec![];
+    let mut blocks: BinaryHeap<Brick> = BinaryHeap::from_iter(input.iter().cloned());
     let mut occupied: HashSet<P3> =
         HashSet::from_iter(input.iter().flat_map(|b| b.blocks.iter().cloned()));
-    let mut moved: Vec<Brick> = vec![];
-    // Drop blocks in height order
-    let mut blocks: BinaryHeap<Brick> = BinaryHeap::from_iter(input.iter().cloned());
     while let Some(b) = blocks.pop() {
         if let Some((b2, o2)) = drop(&b, &occupied) {
             moved.push(b2);
@@ -136,26 +137,59 @@ fn part1(input: &In) -> Out {
             moved.push(b);
         }
     }
-    // Disentegrate blocks
-    let mut count = 0;
-    for b in &moved {
-        let mut occupied = occupied.clone();
-        b.blocks.iter().for_each(|b| {
-            occupied.remove(b);
-        });
-        if moved
-            .iter()
-            .filter(|&b2| b2 != b)
-            .all(|b2| drop(b2, &occupied).is_none())
-        {
-            count += 1;
-        }
-    }
-    count
+    // Disintegrate bricks
+    moved
+        .par_iter()
+        .map(|b| {
+            let mut occupied = occupied.clone();
+            b.blocks.iter().for_each(|b| {
+                occupied.remove(b);
+            });
+            moved
+                .iter()
+                .filter(|&b2| b != b2)
+                .all(|b2| drop(b2, &occupied).is_none())
+        })
+        .filter(|b| *b)
+        .count()
 }
 
 fn part2(input: &In) -> Out {
-    PART2_RESULT
+    // Drop blocks in height order
+    let mut moved: Vec<Brick> = vec![];
+    let mut blocks: BinaryHeap<Brick> = BinaryHeap::from_iter(input.iter().cloned());
+    let mut occupied: HashSet<P3> =
+        HashSet::from_iter(input.iter().flat_map(|b| b.blocks.iter().cloned()));
+    while let Some(b) = blocks.pop() {
+        if let Some((b2, o2)) = drop(&b, &occupied) {
+            moved.push(b2);
+            occupied = o2;
+        } else {
+            moved.push(b);
+        }
+    }
+    // Disintegrate bricks & count number falling
+    moved
+        .par_iter()
+        .flat_map(|b| {
+            let mut occupied = occupied.clone();
+            b.blocks.iter().for_each(|b| {
+                occupied.remove(b);
+            });
+            moved
+                .iter()
+                .filter(|&b2| b != b2)
+                .map(|b2| {
+                    if let Some((_, o2)) = drop(&b2, &occupied) {
+                        occupied = o2;
+                        1
+                    } else {
+                        0
+                    }
+                })
+                .collect::<Vec<_>>()
+        })
+        .sum()
 }
 
 fn main() -> std::io::Result<()> {
