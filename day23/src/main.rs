@@ -9,29 +9,155 @@ use std::io::BufReader;
 use std::io::Error;
 use std::io::ErrorKind::InvalidData;
 use std::time::Instant;
+use util::grid::Grid;
+use util::point::*;
+use util::simplegraph::Graph;
 
 #[derive(Debug, Clone)]
 struct T();
 
-type In = ();
+type In = Grid<char>;
 type Out = usize;
-const PART1_RESULT: Out = 0;
-const PART2_RESULT: Out = 0;
+const PART1_RESULT: Out = 94;
+const PART2_RESULT: Out = 154;
 
 fn parse_input(input: &mut impl Read) -> std::io::Result<In> {
     let data = BufReader::new(input)
         .lines()
-        .map(|l| l.unwrap().bytes().collect::<Vec<_>>())
+        .map(|l| l.unwrap().chars().collect::<Vec<_>>())
         .collect::<Vec<_>>();
-    Ok(())
+    Ok(Grid::from(data))
+}
+
+fn find_paths(map: &Grid<char>, start: &Point, end: &Point) -> Vec<usize> {
+    let mut out: Vec<usize> = vec![];
+    let mut q: Vec<(Point, Point, HashSet<Point>)> =
+        vec![(start.clone(), start.clone(), HashSet::new())];
+    while let Some((p, last, mut visited)) = q.pop() {
+        if p == *end {
+            out.push(visited.len());
+        } else {
+            visited.insert(p.clone());
+            let available = match map.get(&p) {
+                Some('^') => vec![p + UP],
+                Some('>') => vec![p + RIGHT],
+                Some('v') => vec![p + DOWN],
+                Some('<') => vec![p + LEFT],
+                Some('.') => map
+                    .adjacent(&p)
+                    .iter()
+                    .filter(|&p| map.get(p).unwrap() != &'#')
+                    .cloned()
+                    .collect::<Vec<_>>(),
+                _ => panic!("Invalid point"),
+            }
+            .into_iter()
+            .filter(|p| !visited.contains(p))
+            .collect::<Vec<_>>();
+            match available.len() {
+                0 => {}
+                1 => q.push((available[0], last, visited)),
+                _ => {
+                    println!("Junction: {} -> {}", last, p);
+                    available
+                        .into_iter()
+                        .for_each(|p| q.push((p.clone(), p.clone(), visited.clone())))
+                }
+            }
+        }
+    }
+    out
+}
+
+fn partition(map: &Grid<char>, start: &Point, end: &Point) -> Graph<Point> {
+    let mut q: Vec<(Point, Point, HashSet<Point>)> =
+        vec![(start.clone(), start.clone(), HashSet::new())];
+    let mut segments: Vec<(Point, Point, usize)> = vec![];
+    let mut nodes: Vec<Point> = vec![];
+    while let Some((p, start, mut visited)) = q.pop() {
+        if p == *end {
+            segments.push((start.clone(), p.clone(), visited.len()));
+        } else {
+            visited.insert(p.clone());
+            let available = map
+                .adjacent(&p)
+                .iter()
+                .filter(|&p| map.get(p).unwrap() != &'#' && !visited.contains(p))
+                .cloned()
+                .collect::<Vec<_>>();
+            match available.len() {
+                0 => {}
+                1 => {
+                    q.push((available[0], start, visited));
+                }
+                _ => {
+                    segments.push((start.clone(), p.clone(), visited.len()));
+                    if !nodes.contains(&p) {
+                        nodes.push(p.clone());
+                        available.into_iter().for_each(|p2| {
+                            q.push((
+                                p2.clone(),
+                                p.clone(),
+                                HashSet::from_iter(vec![p].into_iter()),
+                            ));
+                        });
+                    }
+                }
+            }
+        }
+    }
+    for s in &segments {
+        println!("{:?}", s);
+    }
+    Graph::new()
+}
+
+fn find_paths2(map: &Grid<char>, start: &Point, end: &Point) -> Vec<usize> {
+    let mut out: Vec<usize> = vec![];
+    let mut q: Vec<(Point, HashSet<Point>)> = vec![(start.clone(), HashSet::new())];
+    while let Some((p, mut visited)) = q.pop() {
+        if p == *end {
+            out.push(visited.len());
+        } else {
+            visited.insert(p.clone());
+            let available = map
+                .adjacent(&p)
+                .iter()
+                .filter(|&p| map.get(p).unwrap() != &'#' && !visited.contains(p))
+                .cloned()
+                .collect::<Vec<_>>();
+            match available.len() {
+                0 => {}
+                1 => {
+                    q.push((available[0], visited));
+                }
+                _ => available.into_iter().for_each(|p| {
+                    q.push((p, visited.clone()));
+                }),
+            }
+        }
+    }
+    out
 }
 
 fn part1(input: &In) -> Out {
-    PART1_RESULT
+    *find_paths(
+        &input,
+        &(input.start + Offset::new(1, 0)),
+        &(input.end + Offset::new(-1, 0)),
+    )
+    .iter()
+    .max()
+    .unwrap()
 }
 
 fn part2(input: &In) -> Out {
-    PART2_RESULT
+    partition(
+        &input,
+        &(input.start + Offset::new(1, 0)),
+        &(input.end + Offset::new(-1, 0)),
+    );
+    0
 }
 
 fn main() -> std::io::Result<()> {
@@ -66,4 +192,27 @@ fn test_part2() {
 
 #[cfg(test)]
 const TESTDATA: &str = r"
+#.#####################
+#.......#########...###
+#######.#########.#.###
+###.....#.>.>.###.#.###
+###v#####.#v#.###.#.###
+###.>...#.#.#.....#...#
+###v###.#.#.#########.#
+###...#.#.#.......#...#
+#####.#.#.#######.#.###
+#.....#.#.#.......#...#
+#.#####.#.#.#########v#
+#.#...#...#...###...>.#
+#.#.#v#######v###.###v#
+#...#.>.#...>.>.#.###.#
+#####v#.#.###v#.#.###.#
+#.....#...#...#.#.#...#
+#.#########.###.#.#.###
+#...###...#...#...#.###
+###.###.#.###v#####v###
+#...#...#.#.>.>.#.>.###
+#.###.###.#.###.#.#v###
+#.....###...###...#...#
+#####################.#
 ";
