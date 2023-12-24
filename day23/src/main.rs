@@ -57,12 +57,9 @@ fn find_paths(map: &Grid<char>, start: &Point, end: &Point) -> Vec<usize> {
             match available.len() {
                 0 => {}
                 1 => q.push((available[0], last, visited)),
-                _ => {
-                    println!("Junction: {} -> {}", last, p);
-                    available
-                        .into_iter()
-                        .for_each(|p| q.push((p.clone(), p.clone(), visited.clone())))
-                }
+                _ => available
+                    .into_iter()
+                    .for_each(|p| q.push((p.clone(), p.clone(), visited.clone()))),
             }
         }
     }
@@ -72,11 +69,11 @@ fn find_paths(map: &Grid<char>, start: &Point, end: &Point) -> Vec<usize> {
 fn partition(map: &Grid<char>, start: &Point, end: &Point) -> Graph<Point> {
     let mut q: Vec<(Point, Point, HashSet<Point>)> =
         vec![(start.clone(), start.clone(), HashSet::new())];
-    let mut segments: Vec<(Point, Point, usize)> = vec![];
+    let mut segments: Vec<(Point, Point, u32)> = vec![];
     let mut nodes: Vec<Point> = vec![];
     while let Some((p, start, mut visited)) = q.pop() {
         if p == *end {
-            segments.push((start.clone(), p.clone(), visited.len()));
+            segments.push((start.clone(), p.clone(), visited.len() as u32));
         } else {
             visited.insert(p.clone());
             let available = map
@@ -91,7 +88,7 @@ fn partition(map: &Grid<char>, start: &Point, end: &Point) -> Graph<Point> {
                     q.push((available[0], start, visited));
                 }
                 _ => {
-                    segments.push((start.clone(), p.clone(), visited.len()));
+                    segments.push((start.clone(), p.clone(), visited.len() as u32));
                     if !nodes.contains(&p) {
                         nodes.push(p.clone());
                         available.into_iter().for_each(|p2| {
@@ -106,10 +103,7 @@ fn partition(map: &Grid<char>, start: &Point, end: &Point) -> Graph<Point> {
             }
         }
     }
-    for s in &segments {
-        println!("{:?}", s);
-    }
-    Graph::new()
+    Graph::new_from_edges(segments)
 }
 
 fn find_paths2(map: &Grid<char>, start: &Point, end: &Point) -> Vec<usize> {
@@ -152,12 +146,13 @@ fn part1(input: &In) -> Out {
 }
 
 fn part2(input: &In) -> Out {
-    partition(
+    let g = partition(
         &input,
         &(input.start + Offset::new(1, 0)),
         &(input.end + Offset::new(-1, 0)),
     );
-    0
+    g.print_to_dot();
+    PART2_RESULT
 }
 
 fn main() -> std::io::Result<()> {

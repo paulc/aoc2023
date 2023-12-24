@@ -12,6 +12,9 @@ impl<V: Eq> Edge<V> {
     pub fn key(&self) -> &V {
         &self.0
     }
+    pub fn cost(&self) -> u32 {
+        self.1
+    }
 }
 
 // Sort edges in reverse cost order
@@ -152,11 +155,16 @@ impl<V> Graph<V>
 where
     V: Display + Clone + Eq + Hash,
 {
-    pub fn to_dot(&self) {
+    pub fn print_to_dot(&self) {
         println!("digraph g {{");
         for (vertex, edge) in &self.0 {
             for e in edge {
-                println!("{} -> {};", vertex, e.key());
+                println!(
+                    "\"{}\" -> \"{}\" [label=\"{}\"];",
+                    vertex,
+                    e.key(),
+                    e.cost()
+                );
             }
         }
         println!("}}");
