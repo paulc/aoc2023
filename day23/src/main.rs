@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::fmt::Display;
 use std::fs::File;
 use std::io::prelude::*;
@@ -70,9 +71,10 @@ fn partition(map: &Grid<char>, start: &Point, end: &Point) -> Graph<Point> {
     let mut q: Vec<(Point, Point, HashSet<Point>)> =
         vec![(start.clone(), start.clone(), HashSet::new())];
     let mut segments: Vec<(Point, Point, u32)> = vec![];
-    let mut nodes: Vec<Point> = vec![];
+    let mut visted: Vec<Point> = vec![];
     while let Some((p, start, mut visited)) = q.pop() {
         if p == *end {
+            // We count final tile
             segments.push((start.clone(), p.clone(), visited.len() as u32));
         } else {
             visited.insert(p.clone());
@@ -88,9 +90,13 @@ fn partition(map: &Grid<char>, start: &Point, end: &Point) -> Graph<Point> {
                     q.push((available[0], start, visited));
                 }
                 _ => {
-                    segments.push((start.clone(), p.clone(), visited.len() as u32));
-                    if !nodes.contains(&p) {
-                        nodes.push(p.clone());
+                    // Check that we havent already seen reverse link
+                    if !segments.contains(&(p, start, visited.len() as u32 - 1)) {
+                        // Dont count first tile in segment length
+                        segments.push((start.clone(), p.clone(), visited.len() as u32 - 1));
+                    }
+                    if !visted.contains(&p) {
+                        visted.push(p.clone());
                         available.into_iter().for_each(|p2| {
                             q.push((
                                 p2.clone(),
@@ -103,31 +109,26 @@ fn partition(map: &Grid<char>, start: &Point, end: &Point) -> Graph<Point> {
             }
         }
     }
-    Graph::new_from_edges(segments)
+    Graph::new_from_bidirectional_edges(segments)
 }
 
-fn find_paths2(map: &Grid<char>, start: &Point, end: &Point) -> Vec<usize> {
+fn find_paths_partition(g: &Graph<Point>, start: &Point, end: &Point) -> Vec<usize> {
     let mut out: Vec<usize> = vec![];
-    let mut q: Vec<(Point, HashSet<Point>)> = vec![(start.clone(), HashSet::new())];
-    while let Some((p, mut visited)) = q.pop() {
+    let mut q: VecDeque<(Point, HashSet<Point>, usize)> =
+        VecDeque::from(vec![(start.clone(), HashSet::new(), 0)]);
+    while let Some((p, mut visited, cost)) = q.pop_front() {
         if p == *end {
-            out.push(visited.len());
+            out.push(cost);
         } else {
             visited.insert(p.clone());
-            let available = map
-                .adjacent(&p)
-                .iter()
-                .filter(|&p| map.get(p).unwrap() != &'#' && !visited.contains(p))
-                .cloned()
-                .collect::<Vec<_>>();
-            match available.len() {
-                0 => {}
-                1 => {
-                    q.push((available[0], visited));
+            for edge in g.edges(&p).unwrap_or(&vec![]) {
+                if !visited.contains(edge.key()) {
+                    q.push_back((
+                        edge.key().clone(),
+                        visited.clone(),
+                        cost + edge.cost() as usize,
+                    ));
                 }
-                _ => available.into_iter().for_each(|p| {
-                    q.push((p, visited.clone()));
-                }),
             }
         }
     }
@@ -151,8 +152,15 @@ fn part2(input: &In) -> Out {
         &(input.start + Offset::new(1, 0)),
         &(input.end + Offset::new(-1, 0)),
     );
-    g.print_to_dot();
-    PART2_RESULT
+    find_paths_partition(
+        &g,
+        &(input.start + Offset::new(1, 0)),
+        &(input.end + Offset::new(-1, 0)),
+    )
+    .iter()
+    .max()
+    .unwrap()
+    .clone()
 }
 
 fn main() -> std::io::Result<()> {
