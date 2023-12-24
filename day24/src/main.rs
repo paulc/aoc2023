@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Display;
@@ -53,9 +54,12 @@ impl PV {
         }
     }
     fn time_at(&self, p2: &P) -> f64 {
-        let tx = (p2.x - self.px) / self.vx;
-        let ty = (p2.y - self.py) / self.vy;
-        tx.max(ty)
+        // Only correct if line crosses point
+        if self.px == p2.x {
+            (p2.y - self.py) / self.vy
+        } else {
+            (p2.x - self.px) / self.vx
+        }
     }
     fn intersects_box2d(&self, x_range: &Range<f64>, y_range: &Range<f64>) -> bool {
         let t_x1 = (x_range.start - self.px) / self.vx;
@@ -129,7 +133,7 @@ fn part1(input: &In, x_range: Range<f64>, y_range: Range<f64>) -> Out {
         .collect::<Vec<_>>();
 
     combinations(&lines, 2)
-        .iter()
+        .par_iter()
         .filter_map(|c| c[0].intersects2d(&c[1]))
         .filter(|p| x_range.contains(&p.x) && y_range.contains(&p.y))
         .count()
