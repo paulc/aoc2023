@@ -89,18 +89,7 @@ where
         score.insert(start.clone(), 0);
         while let Some(current) = open.pop() {
             if current.0 == *target {
-                if let Some(cost) = score.get(&target) {
-                    let mut current = &current.0;
-                    let mut path = vec![current.clone()];
-                    while let Some(prev) = from.get(current) {
-                        path.push(prev.clone());
-                        current = prev;
-                    }
-                    path.reverse();
-                    return Some((cost.clone(), path));
-                } else {
-                    return None;
-                }
+                break;
             }
             if let Some(v) = self.0.get(&current.0) {
                 for Edge(next, cost) in v.iter() {
@@ -113,7 +102,41 @@ where
                 }
             }
         }
-        None
+        if let Some(cost) = score.get(&target) {
+            let mut current = target.clone();
+            let mut path = vec![current.clone()];
+            while let Some(prev) = from.get(&current) {
+                path.push(prev.clone());
+                current = prev.clone();
+            }
+            path.reverse();
+            return Some((cost.clone(), path));
+        } else {
+            return None;
+        }
+    }
+    pub fn astar_all<F>(&self, start: &V, h: F) -> (HashMap<V, u32>, HashMap<V, V>)
+    where
+        F: Fn(&V) -> u32,
+    {
+        let mut open: BinaryHeap<Edge<V>> = BinaryHeap::new();
+        let mut from: HashMap<V, V> = HashMap::new();
+        let mut score: HashMap<V, u32> = HashMap::new();
+        open.push(Edge(start.clone(), h(&start)));
+        score.insert(start.clone(), 0);
+        while let Some(current) = open.pop() {
+            if let Some(v) = self.0.get(&current.0) {
+                for Edge(next, cost) in v.iter() {
+                    let tentative = score[&current.0] + cost;
+                    if tentative < *score.get(&next).unwrap_or(&u32::MAX) {
+                        from.insert(next.clone(), current.0.clone());
+                        score.insert(next.clone(), tentative);
+                        open.push(Edge(next.clone(), tentative + h(&next)));
+                    }
+                }
+            }
+        }
+        (score, from)
     }
     pub fn floyd(&self) -> HashMap<(&V, &V), Option<u32>> {
         let mut cost: HashMap<(&V, &V), Option<u32>> = HashMap::new();
