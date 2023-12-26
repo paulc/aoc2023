@@ -93,12 +93,14 @@ fn part1((map, start): &In, count: usize) -> Out {
 }
 
 fn part2((map, start): &In) -> Out {
+    /*
     let rocks = find_rocks(map, start);
     let mut start = vec![Point::new(0, 0)];
     for i in 0..500 {
         start = step_set(&rocks, &map.size, &start);
         println!("{},{}", i + 1, start.len());
     }
+    */
     PART2_RESULT
 }
 

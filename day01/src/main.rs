@@ -8,6 +8,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::io::Error;
 use std::io::ErrorKind::InvalidData;
+use std::time::Instant;
 
 type In = Vec<Vec<u8>>;
 type Out = u32;
@@ -73,10 +74,20 @@ fn part2(input: &In) -> Out {
 fn main() -> std::io::Result<()> {
     let mut f = File::open("input.txt")?;
     let input1 = parse_input1(&mut f);
-    println!("Part1: {:?}", part1(&input1));
     f = File::open("input.txt")?;
     let input2 = parse_input2(&mut f);
-    println!("Part2: {:?}", part2(&input2));
+    let p1 = Instant::now();
+    println!(
+        "Part1: {:?} ({}s)",
+        part1(&input1),
+        p1.elapsed().as_secs_f32()
+    );
+    let p2 = Instant::now();
+    println!(
+        "Part2: {:?} ({}s)",
+        part2(&input1),
+        p2.elapsed().as_secs_f32()
+    );
     Ok(())
 }
 

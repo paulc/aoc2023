@@ -9,6 +9,7 @@ use std::io::BufReader;
 use std::io::Error;
 use std::io::ErrorKind::InvalidData;
 use std::ops::Range;
+use std::time::Instant;
 
 type In = (Vec<i64>, Vec<Vec<(i64, i64, Range<i64>)>>);
 type Out = i64;
@@ -195,8 +196,18 @@ fn part2((seeds, chain): &In) -> Out {
 fn main() -> std::io::Result<()> {
     let mut f = File::open("input.txt")?;
     let input = parse_input(&mut f);
-    println!("Part1: {:?}", part1(&input));
-    println!("Part2: {:?}", part2(&input));
+    let p1 = Instant::now();
+    println!(
+        "Part1: {:?} ({}s)",
+        part1(&input),
+        p1.elapsed().as_secs_f32()
+    );
+    let p2 = Instant::now();
+    println!(
+        "Part2: {:?} ({}s)",
+        part2(&input),
+        p2.elapsed().as_secs_f32()
+    );
     Ok(())
 }
 

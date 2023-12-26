@@ -9,6 +9,7 @@ use std::io::BufReader;
 use std::io::Error;
 use std::io::ErrorKind::InvalidData;
 use std::iter::zip;
+use std::time::Instant;
 
 type In = Vec<(u64, u64)>;
 type Out = u64;
@@ -91,8 +92,18 @@ fn main() -> std::io::Result<()> {
     let input1 = parse_input1(&mut f1);
     let mut f2 = File::open("input.txt")?;
     let input2 = parse_input2(&mut f2);
-    println!("Part1: {:?}", part1(&input1));
-    println!("Part2: {:?}", part2(&input2));
+    let p1 = Instant::now();
+    println!(
+        "Part1: {:?} ({}s)",
+        part1(&input1),
+        p1.elapsed().as_secs_f32()
+    );
+    let p2 = Instant::now();
+    println!(
+        "Part2: {:?} ({}s)",
+        part2(&input2),
+        p2.elapsed().as_secs_f32()
+    );
     Ok(())
 }
 
