@@ -71,7 +71,7 @@ fn partition(map: &Grid<char>, start: &Point, end: &Point) -> Graph<Point> {
     let mut q: Vec<(Point, Point, HashSet<Point>)> =
         vec![(start.clone(), start.clone(), HashSet::new())];
     let mut segments: Vec<(Point, Point, u32)> = vec![];
-    let mut visted: Vec<Point> = vec![];
+    let mut seen: HashSet<Point> = HashSet::new();
     while let Some((p, start, mut visited)) = q.pop() {
         if p == *end {
             // We count final tile
@@ -90,13 +90,15 @@ fn partition(map: &Grid<char>, start: &Point, end: &Point) -> Graph<Point> {
                     q.push((available[0], start, visited));
                 }
                 _ => {
+                    // Junction
                     // Check that we havent already seen reverse link
                     if !segments.contains(&(p, start, visited.len() as u32 - 1)) {
                         // Dont count first tile in segment length
                         segments.push((start.clone(), p.clone(), visited.len() as u32 - 1));
                     }
-                    if !visted.contains(&p) {
-                        visted.push(p.clone());
+                    // Add next paths if we havent already seen
+                    if !seen.contains(&p) {
+                        seen.insert(p.clone());
                         available.into_iter().for_each(|p2| {
                             q.push((
                                 p2.clone(),
@@ -116,7 +118,9 @@ fn find_paths_partition(g: &Graph<Point>, start: &Point, end: &Point) -> Vec<usi
     let mut out: Vec<usize> = vec![];
     let mut q: VecDeque<(Point, HashSet<Point>, usize)> =
         VecDeque::from(vec![(start.clone(), HashSet::new(), 0)]);
+    let mut counter: i32 = 0;
     while let Some((p, mut visited, cost)) = q.pop_front() {
+        counter += 1;
         if p == *end {
             out.push(cost);
         } else {
@@ -132,6 +136,7 @@ fn find_paths_partition(g: &Graph<Point>, start: &Point, end: &Point) -> Vec<usi
             }
         }
     }
+    eprintln!(">> Counter: {}", counter);
     out
 }
 
@@ -152,15 +157,23 @@ fn part2(input: &In) -> Out {
         &(input.start + Offset::new(1, 0)),
         &(input.end + Offset::new(-1, 0)),
     );
-    find_paths_partition(
-        &g,
-        &(input.start + Offset::new(1, 0)),
-        &(input.end + Offset::new(-1, 0)),
-    )
-    .iter()
-    .max()
-    .unwrap()
-    .clone()
+    let mut end = input.end + Offset::new(-1, 0);
+    let mut end_cost: usize = 0;
+    let e_end = g.edges(&end).unwrap();
+    if e_end.len() == 1 {
+        // There is only one route to the end point
+        // so we can calculate route to prev junction
+        // and add fixed distance (reduces search space)
+        end = *e_end[0].key();
+        end_cost = e_end[0].cost() as usize;
+    }
+
+    find_paths_partition(&g, &(input.start + Offset::new(1, 0)), &end)
+        .iter()
+        .max()
+        .unwrap()
+        .clone()
+        + end_cost
 }
 
 fn main() -> std::io::Result<()> {
