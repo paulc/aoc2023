@@ -118,7 +118,6 @@ fn find_paths_partition(g: &Graph<Point>, start: &Point, end: &Point) -> Vec<usi
     let mut out: Vec<usize> = vec![];
     let mut q: VecDeque<(Point, HashSet<Point>, usize)> =
         VecDeque::from(vec![(start.clone(), HashSet::new(), 0)]);
-    let mut counter: i32 = 0;
     while let Some((p, mut visited, cost)) = q.pop_front() {
         counter += 1;
         if p == *end {
@@ -136,7 +135,6 @@ fn find_paths_partition(g: &Graph<Point>, start: &Point, end: &Point) -> Vec<usi
             }
         }
     }
-    eprintln!(">> Counter: {}", counter);
     out
 }
 
@@ -167,7 +165,6 @@ fn part2(input: &In) -> Out {
         end = *e_end[0].key();
         end_cost = e_end[0].cost() as usize;
     }
-
     find_paths_partition(&g, &(input.start + Offset::new(1, 0)), &end)
         .iter()
         .max()
